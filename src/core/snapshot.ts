@@ -108,6 +108,16 @@ function formatNodeLine(node: TextSnapshotNode): string {
 export interface SmartSnapshotResult {
   /** Processed tree (post all filters). */
   root: TextSnapshotNode;
+  /**
+   * Tree BEFORE dedupe/collapse — the diff baseline.
+   *
+   * Why: diff identity is uid-based. Dedupe merges siblings into one uid and
+   * collapse folds same-name chains, so those uids vanish from `root` and a
+   * later snapshot_diff would report spurious removed/added for them. Storing
+   * the pre-dedupe tree as the diff baseline keeps every real node's uid
+   * stable across snapshots.
+   */
+  diffRoot: TextSnapshotNode;
   /** Formatted text for MCP response. */
   formatted: string;
 }
@@ -143,7 +153,7 @@ export function runSmartSnapshotPipeline(
       name: '',
       children: [],
     };
-    return {root: empty, formatted: formatTree(empty)};
+    return {root: empty, diffRoot: empty, formatted: formatTree(empty)};
   }
   tree = afterVisibility;
 
@@ -155,14 +165,17 @@ export function runSmartSnapshotPipeline(
       name: root.name,
       children: [],
     };
-    return {root: empty, formatted: formatTree(empty)};
+    return {root: empty, diffRoot: empty, formatted: formatTree(empty)};
   }
   tree = afterInteraction;
+
+  // Diff baseline = the tree before dedupe/collapse/prune (see diffRoot doc).
+  const diffRoot = tree;
 
   tree = dedupeTree(tree);
   // Collapse same-name child chains (SPA nav shells) before depth-limiting.
   tree = collapseSameNameChildren(tree);
   tree = pruneTree(tree, options.maxDepth);
 
-  return {root: tree, formatted: formatTree(tree)};
+  return {root: tree, diffRoot, formatted: formatTree(tree)};
 }

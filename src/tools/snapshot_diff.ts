@@ -88,7 +88,9 @@ export async function handleSnapshotDiff(
       options,
       visibilityByUid,
     );
-    const text = runSnapshotDiff(result.root, result.formatted);
+    // Diff against the pre-dedupe/collapse tree (see diffRoot doc): merged and
+    // folded uids remain stable across snapshots, avoiding spurious ± entries.
+    const text = runSnapshotDiff(result.diffRoot, result.formatted);
     return textResult(text);
   } catch (err) {
     return errorResult(toErrorMessage(err));

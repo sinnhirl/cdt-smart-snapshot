@@ -13,6 +13,7 @@ import {
   runSnapshotDiff,
   storeSnapshot,
 } from '../src/core/diff.js';
+import {runSmartSnapshotPipeline} from '../src/core/snapshot.js';
 import type {TextSnapshotNode} from '../src/types.js';
 
 /**
@@ -41,6 +42,34 @@ function node(
 describe('diff', () => {
   beforeEach(() => {
     resetDiffHistory();
+  });
+
+  it('shouldNotReportSpuriousRemovedAddedWhenDedupeMergesSiblings', () => {
+    // Two consecutive same-role+name siblings (e.g. a mail list with two
+    // "Sent" rows) get deduped into ×2 by the pipeline. The diff baseline must
+    // be the PRE-dedupe tree, so the merged sibling's uid stays identifiable
+    // and a no-op second call reports no changes.
+    const build = (): TextSnapshotNode =>
+      node(1, 'main', 'Main', [
+        node(2, 'link', 'Sent'),
+        node(3, 'link', 'Sent'),
+      ]);
+
+    const options = {
+      maxDepth: 8,
+      includeHidden: false,
+      verbose: false,
+    } as const;
+
+    // First call: pipeline stores the pre-dedupe tree as baseline.
+    const first = runSmartSnapshotPipeline(build(), options);
+    const step1 = runSnapshotDiff(first.diffRoot, first.formatted);
+    expect(step1).toContain('initial snapshot');
+
+    // Second call: same page → no spurious ± for the deduped sibling.
+    const second = runSmartSnapshotPipeline(build(), options);
+    const step2 = runSnapshotDiff(second.diffRoot, second.formatted);
+    expect(step2).toBe('(no changes since last snapshot)');
   });
 
   it('shouldReportAddedNode', () => {

@@ -111,7 +111,8 @@ export async function handleSmartSnapshot(
     );
 
     // Keep diff baseline in sync when agents use smart_snapshot as the first look.
-    storeSnapshot(result.root, result.formatted);
+    // Use the pre-dedupe/collapse tree so merged/folded uids stay identifiable.
+    storeSnapshot(result.diffRoot, result.formatted);
     return textResult(result.formatted);
   } catch (err) {
     return errorResult(toErrorMessage(err));
