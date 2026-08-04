@@ -14,11 +14,13 @@
  * Maps backendNodeId → uid for the lifetime of the MCP server process.
  *
  * Why: A single mapper instance lets smart_snapshot and snapshot_diff share
- * identity. Missing backendNodeIds get fresh incremental uids (treated as new
- * nodes on every encounter — correct for ephemeral AX-only nodes).
+ * identity. Missing backendNodeIds get a stable logical-path uid so nodes
+ * without a DOM handle (pure AX nodes) still diff correctly instead of being
+ * treated as brand-new on every snapshot.
  */
 export class UidMapper {
   private readonly byBackendId = new Map<number, number>();
+  private readonly byLogicalPath = new Map<string, number>();
   private nextUid = 1;
 
   /**
@@ -47,6 +49,40 @@ export class UidMapper {
   }
 
   /**
+   * Returns a stable uid for a node without a backendNodeId, keyed by its
+   * logical position in the tree.
+   *
+   * Why: AX-only nodes (text/static under a parent that has a DOM handle) have
+   * no backendNodeId. Assigning a fresh uid each snapshot makes diff report
+   * spurious removed+added every round. Keying on (parentUid, role, name,
+   * siblingIndex) is stable as long as the parent exists and the sibling order
+   * is unchanged — exactly the nodes whose identity we can trust positionally.
+   *
+   * @param parentUid - Uid of the parent node (root has 0).
+   * @param role - AX role.
+   * @param name - Accessible name.
+   * @param siblingIndex - 0-based index among the parent's AX children.
+   * @returns Positive integer uid.
+   * @throws Never throws.
+   */
+  getUidForLogicalPath(
+    parentUid: number,
+    role: string,
+    name: string,
+    siblingIndex: number,
+  ): number {
+    const key = `${parentUid}|${role}|${name}|${siblingIndex}`;
+    const existing = this.byLogicalPath.get(key);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const uid = this.nextUid;
+    this.nextUid += 1;
+    this.byLogicalPath.set(key, uid);
+    return uid;
+  }
+
+  /**
    * Resets all mappings (useful in tests).
    *
    * @returns void
@@ -54,6 +90,7 @@ export class UidMapper {
    */
   reset(): void {
     this.byBackendId.clear();
+    this.byLogicalPath.clear();
     this.nextUid = 1;
   }
 }

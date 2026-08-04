@@ -54,13 +54,13 @@ export function normalizeAxTree(
 ): TextSnapshotNode {
   if (raw === null || raw === undefined) {
     return {
-      uid: mapper.getUid(undefined),
+      uid: mapper.getUidForLogicalPath(0, 'Document', '', 0),
       role: 'Document',
       name: '',
       children: [],
     };
   }
-  return normalizeNode(raw, mapper);
+  return normalizeNode(raw, mapper, 0, 0);
 }
 
 /**
@@ -68,30 +68,45 @@ export function normalizeAxTree(
  *
  * @param raw - Raw AX node.
  * @param mapper - Uid mapper.
+ * @param parentUid - Uid of the parent node (root passes 0).
+ * @param siblingIndex - 0-based index among the parent's children.
  * @returns TextSnapshotNode.
  */
-function normalizeNode(raw: RawAxNode, mapper: UidMapper): TextSnapshotNode {
+function normalizeNode(
+  raw: RawAxNode,
+  mapper: UidMapper,
+  parentUid: number,
+  siblingIndex: number,
+): TextSnapshotNode {
   const role = axString(raw.role) || 'generic';
   const name = axString(raw.name);
   const valueStr = raw.value === undefined ? undefined : axString(raw.value);
   const backendNodeId = raw.backendDOMNodeId;
-  const uid = mapper.getUid(backendNodeId);
+  // Nodes with a real DOM handle get a backendNodeId-based uid; AX-only nodes
+  // get a stable logical-path uid so diff doesn't see them as new each round.
+  const uid =
+    backendNodeId === undefined
+      ? mapper.getUidForLogicalPath(parentUid, role, name, siblingIndex)
+      : mapper.getUid(backendNodeId);
 
   const children: TextSnapshotNode[] = [];
   if (raw.children !== undefined) {
+    let childIndex = 0;
     for (const child of raw.children) {
       if (child.ignored === true) {
         // Still walk ignored parents' interesting descendants if any.
         if (child.children !== undefined) {
           for (const grand of child.children) {
             if (grand.ignored !== true) {
-              children.push(normalizeNode(grand, mapper));
+              children.push(normalizeNode(grand, mapper, uid, childIndex));
+              childIndex += 1;
             }
           }
         }
         continue;
       }
-      children.push(normalizeNode(child, mapper));
+      children.push(normalizeNode(child, mapper, uid, childIndex));
+      childIndex += 1;
     }
   }
 

@@ -25,12 +25,37 @@ describe('uid', () => {
     expect(other).not.toBe(first);
   });
 
-  it('shouldGenerateFreshUidWhenBackendNodeIdMissing', () => {
+  it('shouldReuseUidForSameLogicalPathAcrossSnapshots', () => {
     const mapper = new UidMapper();
-    const a = mapper.getUid(undefined);
-    const b = mapper.getUid(undefined);
-    expect(a).toBeTypeOf('number');
-    expect(b).toBeTypeOf('number');
+    // AX-only node (no backendNodeId) at parent 7, role text, name "3 unread",
+    // sibling index 2 — same logical position across snapshots.
+    const first = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
+    const second = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
+    expect(second).toBe(first);
+  });
+
+  it('shouldDistinguishDifferentLogicalPaths', () => {
+    const mapper = new UidMapper();
+    const a = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
+    const b = mapper.getUidForLogicalPath(7, 'text', '4 unread', 2);
+    const c = mapper.getUidForLogicalPath(8, 'text', '3 unread', 2);
+    const d = mapper.getUidForLogicalPath(7, 'text', '3 unread', 3);
     expect(a).not.toBe(b);
+    expect(a).not.toBe(c);
+    expect(a).not.toBe(d);
+  });
+
+  it('shouldResetClearsMappingsSoUidsRestart', () => {
+    const mapper = new UidMapper();
+    // Two distinct paths consume uids 1 and 2.
+    const first = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
+    const second = mapper.getUidForLogicalPath(8, 'link', 'Inbox', 0);
+    expect(second).toBe(first + 1);
+
+    // After reset, a brand-new path starts again from the fresh counter — the
+    // old mapping is gone (reset isolation for tests).
+    mapper.reset();
+    const fresh = mapper.getUidForLogicalPath(9, 'button', 'Compose', 0);
+    expect(fresh).toBe(1);
   });
 });
