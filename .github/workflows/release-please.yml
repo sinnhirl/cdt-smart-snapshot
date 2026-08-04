@@ -4,8 +4,7 @@ on:
       - main
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 name: release-please
 
@@ -15,7 +14,10 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # PAT (not GITHUB_TOKEN): the built-in token cannot create PRs from
+          # Actions-triggered pushes (loop protection), which is exactly what
+          # release-please does. Classic PAT with repo scope works.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           target-branch: main
           release-type: node
           config-file: release-please-config.json
