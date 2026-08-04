@@ -20,8 +20,13 @@ function node(
   role: string,
   name: string,
   children: TextSnapshotNode[] = [],
+  extras?: Partial<Pick<TextSnapshotNode, 'value'>>,
 ): TextSnapshotNode {
-  return {uid, role, name, children};
+  const n: TextSnapshotNode = {uid, role, name, children};
+  if (extras?.value !== undefined) {
+    n.value = extras.value;
+  }
+  return n;
 }
 
 describe('dedupe', () => {
@@ -50,6 +55,24 @@ describe('dedupe', () => {
     ]);
     const result = dedupeTree(tree);
     expect(result.children).toHaveLength(3);
+  });
+
+  it('shouldNotMergeWhenValueDiffers', () => {
+    const tree = node(1, 'main', 'Main', [
+      node(2, 'checkbox', 'Agree', [], {value: 'false'}),
+      node(3, 'checkbox', 'Agree', [], {value: 'true'}),
+    ]);
+    const result = dedupeTree(tree);
+    expect(result.children).toHaveLength(2);
+  });
+
+  it('shouldNotMergeWhenSubtreeStructureDiffers', () => {
+    const tree = node(1, 'main', 'Main', [
+      node(2, 'link', 'Item', [node(10, 'text', 'A')]),
+      node(3, 'link', 'Item', [node(11, 'text', 'B')]),
+    ]);
+    const result = dedupeTree(tree);
+    expect(result.children).toHaveLength(2);
   });
 
   it('shouldKeepFirstUidAsRepresentative', () => {
@@ -94,6 +117,19 @@ describe('collapseSameNameChildren', () => {
     expect(home).toBeDefined();
     if (home !== undefined) {
       expect(home.children).toHaveLength(0);
+    }
+  });
+
+  it('shouldNotCollapseUnnamedButtonInLinkChain', () => {
+    const tree = node(1, 'link', 'Home', [
+      node(2, 'link', 'Home', [node(3, 'button', '')]),
+    ]);
+    const result = collapseSameNameChildren(tree);
+    const home = result.children[0];
+    expect(home).toBeDefined();
+    if (home !== undefined) {
+      expect(home.children).toHaveLength(1);
+      expect(home.children[0]?.role).toBe('button');
     }
   });
 

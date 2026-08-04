@@ -4,8 +4,8 @@
  */
 import {describe, expect, it} from 'vitest';
 
-import {assessVisibility} from '../src/core/visibility.js';
-import type {ElementVisibilityInfo} from '../src/types.js';
+import {assessVisibility, filterHidden} from '../src/core/visibility.js';
+import type {ElementVisibilityInfo, TextSnapshotNode} from '../src/types.js';
 
 /**
  * Builds a default in-viewport, visible element; override fields per case.
@@ -85,5 +85,62 @@ describe('assessVisibility', () => {
     const result = assessVisibility(makeInfo());
     expect(result.visible).toBe(true);
     expect(result.offscreen).toBe(false);
+  });
+});
+
+describe('filterHidden', () => {
+  it('shouldTreatUndefinedVisibleAsHiddenByDefault', () => {
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'page',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'button',
+          name: 'Action',
+          children: [],
+        },
+      ],
+    };
+    const filtered = filterHidden(tree, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      expect(filtered.children).toHaveLength(0);
+    }
+  });
+
+  it('shouldKeepUnevaluatedNodeWithBackendNodeIdWhenHideUnevaluated', () => {
+    // Large-page fast path: visibility skipped, so visible is undefined. A
+    // node with a real DOM handle (backendNodeId) paints and must survive;
+    // only AX-only nodes are dropped.
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'page',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'button',
+          name: 'Real DOM button',
+          backendNodeId: 100,
+          children: [],
+        },
+        {
+          uid: 3,
+          role: 'text',
+          name: 'AX-only text',
+          children: [],
+        },
+      ],
+    };
+    const filtered = filterHidden(tree, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      expect(filtered.children).toHaveLength(1);
+      expect(filtered.children[0]?.uid).toBe(2);
+    }
   });
 });

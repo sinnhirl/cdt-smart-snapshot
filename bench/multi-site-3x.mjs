@@ -45,9 +45,9 @@ const SETTLE_MS = 3000;
 const MIN_NODES_OK = 30; // below this, page likely didn't finish loading → retry
 
 function countNodes(node) {
-  if (node === null || node === undefined) return 0;
+  if (node === null || node === undefined) {return 0;}
   let n = 1;
-  for (const c of node.children ?? []) n += countNodes(c);
+  for (const c of node.children ?? []) {n += countNodes(c);}
   return n;
 }
 
@@ -56,15 +56,15 @@ function countNodes(node) {
  * `uid=N role "name" value="..."` with 2-space indent per depth.
  */
 function officialFormat(node, depth = 0) {
-  if (node === null || node === undefined) return '';
+  if (node === null || node === undefined) {return '';}
   const indent = '  '.repeat(depth);
   const attrs = [];
-  if (node.id !== undefined) attrs.push(`uid=${node.id}`);
-  if (node.role) attrs.push(node.role === 'none' ? 'ignored' : node.role);
-  if (node.name) attrs.push(`"${node.name}"`);
-  if (node.value !== undefined && node.value !== '') attrs.push(`value="${node.value}"`);
+  if (node.id !== undefined) {attrs.push(`uid=${node.id}`);}
+  if (node.role) {attrs.push(node.role === 'none' ? 'ignored' : node.role);}
+  if (node.name) {attrs.push(`"${node.name}"`);}
+  if (node.value !== undefined && node.value !== '') {attrs.push(`value="${node.value}"`);}
   let out = `${indent}${attrs.join(' ')}\n`;
-  for (const c of node.children ?? []) out += officialFormat(c, depth + 1);
+  for (const c of node.children ?? []) {out += officialFormat(c, depth + 1);}
   return out;
 }
 

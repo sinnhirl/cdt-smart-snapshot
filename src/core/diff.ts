@@ -100,7 +100,10 @@ export function nodesEqual(a: TextSnapshotNode, b: TextSnapshotNode): boolean {
     a.role === b.role &&
     a.name === b.name &&
     a.value === b.value &&
-    a.visible === b.visible
+    a.visible === b.visible &&
+    a.count === b.count &&
+    a.collapsed === b.collapsed &&
+    a.childCount === b.childCount
   );
 }
 
@@ -109,10 +112,17 @@ export function nodesEqual(a: TextSnapshotNode, b: TextSnapshotNode): boolean {
  *
  * @param prev - Previous node.
  * @param curr - Current node.
+ * @param prevParentUid - Previous parent uid, if any.
+ * @param currParentUid - Current parent uid, if any.
  * @returns Human-readable detail string.
  * @throws Never throws.
  */
-function changeDetail(prev: TextSnapshotNode, curr: TextSnapshotNode): string {
+function changeDetail(
+  prev: TextSnapshotNode,
+  curr: TextSnapshotNode,
+  prevParentUid?: number,
+  currParentUid?: number,
+): string {
   const parts: string[] = [];
   if (prev.name !== curr.name) {
     parts.push(`"${prev.name}" → "${curr.name}"`);
@@ -125,6 +135,24 @@ function changeDetail(prev: TextSnapshotNode, curr: TextSnapshotNode): string {
   }
   if (prev.visible !== curr.visible) {
     parts.push(`visible ${String(prev.visible)} → ${String(curr.visible)}`);
+  }
+  if (prev.count !== curr.count) {
+    parts.push(`count ${String(prev.count ?? 1)} → ${String(curr.count ?? 1)}`);
+  }
+  if (prev.collapsed !== curr.collapsed) {
+    parts.push(
+      `collapsed ${String(prev.collapsed)} → ${String(curr.collapsed)}`,
+    );
+  }
+  if (prev.childCount !== curr.childCount) {
+    parts.push(
+      `childCount ${String(prev.childCount ?? 0)} → ${String(curr.childCount ?? 0)}`,
+    );
+  }
+  if (prevParentUid !== currParentUid) {
+    parts.push(
+      `parent uid ${String(prevParentUid ?? 'none')} → ${String(currParentUid ?? 'none')}`,
+    );
   }
   return parts.join(', ');
 }
@@ -147,6 +175,8 @@ export function computeDiff(
 ): DiffResult {
   const prevMap = buildUidMap(prevRoot);
   const currMap = buildUidMap(currRoot);
+  const prevParentMap = buildParentMap(prevRoot);
+  const currParentMap = buildParentMap(currRoot);
   const entries: DiffEntry[] = [];
 
   // Curr BFS: additions and changes in current DOM order.
@@ -157,14 +187,17 @@ export function computeDiff(
       break;
     }
     const prev = prevMap.get(node.uid);
+    const prevParentUid = prevParentMap.get(node.uid)?.uid;
+    const currParentUid = currParentMap.get(node.uid)?.uid;
+    const parentChanged = prevParentUid !== currParentUid;
     if (prev === undefined) {
       entries.push({kind: 'added', node});
-    } else if (!nodesEqual(prev, node)) {
+    } else if (!nodesEqual(prev, node) || parentChanged) {
       entries.push({
         kind: 'changed',
         node,
         previous: prev,
-        detail: changeDetail(prev, node),
+        detail: changeDetail(prev, node, prevParentUid, currParentUid),
       });
     }
     for (const child of node.children) {
@@ -253,6 +286,28 @@ export function diffToText(
 }
 
 /**
+ * Walks up from a node's parent, skipping synthetic __promoted__ wrappers.
+ *
+ * Why: Interaction filtering wraps promoted siblings in __promoted__ nodes that
+ * formatTree omits; diff context must show the same real parent agents see.
+ *
+ * @param childUid - Uid of the node whose parent context is needed.
+ * @param parentMap - Child uid → parent node map.
+ * @returns Real parent for context lines, or undefined at root.
+ * @throws Never throws.
+ */
+function resolveContextParent(
+  childUid: number,
+  parentMap: Map<number, TextSnapshotNode>,
+): TextSnapshotNode | undefined {
+  let parent = parentMap.get(childUid);
+  while (parent !== undefined && parent.role === '__promoted__') {
+    parent = parentMap.get(parent.uid);
+  }
+  return parent;
+}
+
+/**
  * Builds parent-context lines for diff entries (±2 indent levels of context).
  *
  * @param entries - Diff entries.
@@ -272,7 +327,7 @@ function buildContextLines(
 
   for (const entry of entries) {
     const parentMap = entry.kind === 'removed' ? prevParent : currParent;
-    const parent = parentMap.get(entry.node.uid);
+    const parent = resolveContextParent(entry.node.uid, parentMap);
     if (parent !== undefined && !seenParents.has(parent.uid)) {
       seenParents.add(parent.uid);
       const namePart = parent.name.length > 0 ? ` "${parent.name}"` : '';

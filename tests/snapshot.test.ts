@@ -36,6 +36,12 @@ const defaultOptions: SnapshotOptions = {
 };
 
 describe('snapshot', () => {
+  it('shouldIncludeUidOnTextNodeLines', () => {
+    const tree = node(1, 'Document', 'page', [node(2, 'text', 'Hello world')]);
+    const text = formatTree(tree);
+    expect(text).toContain('[text] "Hello world" (uid=2)');
+  });
+
   it('shouldProduceFormattedTreeWithRolesNamesUids', () => {
     const tree = node(1, 'Document', 'example.com', [
       node(12, 'button', 'Compose'),

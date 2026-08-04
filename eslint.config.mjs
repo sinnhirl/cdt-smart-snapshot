@@ -19,6 +19,10 @@ export default defineConfig([
             '.prettierrc.cjs',
             'eslint.config.mjs',
             'vitest.config.ts',
+            'bench/bench.mjs',
+            'bench/diff-demo.mjs',
+            'bench/multi-site.mjs',
+            'bench/multi-site-3x.mjs',
           ],
         },
       },
@@ -63,6 +67,16 @@ export default defineConfig([
     files: ['**/*.test.ts'],
     rules: {
       '@typescript-eslint/no-floating-promises': 'off',
+    },
+  },
+  {
+    name: 'Bench scripts',
+    files: ['bench/*.mjs'],
+    rules: {
+      // Benchmark scripts use fire-and-forget .catch(() => {}) intentionally;
+      // they are dev tools, not shipped server code.
+      '@typescript-eslint/no-empty-function': 'off',
+      'no-empty': 'off',
     },
   },
 ]);

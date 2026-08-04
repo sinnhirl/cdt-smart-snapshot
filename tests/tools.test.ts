@@ -12,7 +12,40 @@ import {join} from 'node:path';
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
-import type {RawAxNode} from '../src/types.js';
+import type {ElementVisibilityInfo, RawAxNode} from '../src/types.js';
+
+/**
+ * Default visibility facts for mocked AX nodes in tool tests.
+ */
+function defaultVisibleInfo(): ElementVisibilityInfo {
+  return {
+    display: 'block',
+    visibility: 'visible',
+    opacity: 1,
+    rect: {
+      top: 0,
+      left: 0,
+      bottom: 100,
+      right: 100,
+      width: 100,
+      height: 100,
+    },
+    viewportWidth: 1280,
+    viewportHeight: 720,
+  };
+}
+
+/**
+ * Maps backend ids from the default mock AX tree to visible geometry.
+ */
+function defaultMockVisibilityMap(): Map<number, ElementVisibilityInfo> {
+  const info = defaultVisibleInfo();
+  const map = new Map<number, ElementVisibilityInfo>();
+  map.set(1, info);
+  map.set(12, info);
+  map.set(15, info);
+  return map;
+}
 
 const {
   getActivePage,
@@ -20,7 +53,12 @@ const {
   takeScreenshotToPath,
   mockState,
 } = vi.hoisted(() => {
-  const mockState = {
+  const mockState: {
+    hasPage: boolean;
+    raw: RawAxNode;
+    visibilityByBackendId: Map<number, ElementVisibilityInfo>;
+    screenshotPathWritten: string;
+  } = {
     hasPage: true,
     raw: {
       role: 'RootWebArea',
@@ -40,8 +78,8 @@ const {
           children: [],
         },
       ],
-    } satisfies RawAxNode,
-    visibilityByBackendId: new Map(),
+    },
+    visibilityByBackendId: defaultMockVisibilityMap(),
     screenshotPathWritten: '',
   };
 
@@ -104,10 +142,83 @@ describe('tools', () => {
     resetDiffHistory();
     defaultUidMapper.reset();
     mockState.hasPage = true;
-    mockState.visibilityByBackendId = new Map();
+    mockState.visibilityByBackendId = defaultMockVisibilityMap();
     getActivePage.mockClear();
     fetchAxTreeWithVisibility.mockClear();
     takeScreenshotToPath.mockClear();
+  });
+
+  it('smart_snapshotShouldUseEnvDefaultMaxDepthWhenOmitted', async () => {
+    vi.stubEnv('CDT_MAX_DEPTH', '3');
+    const vis = defaultVisibleInfo();
+    mockState.visibilityByBackendId = new Map([
+      [1, vis],
+      [2, vis],
+      [3, vis],
+      [4, vis],
+      [5, vis],
+    ]);
+    mockState.raw = {
+      role: 'RootWebArea',
+      name: 'deep',
+      backendDOMNodeId: 1,
+      children: [
+        {
+          role: 'article',
+          name: 'L0',
+          backendDOMNodeId: 2,
+          children: [
+            {
+              role: 'article',
+              name: 'L1',
+              backendDOMNodeId: 3,
+              children: [
+                {
+                  role: 'article',
+                  name: 'L2',
+                  backendDOMNodeId: 4,
+                  children: [
+                    {
+                      role: 'link',
+                      name: 'Leaf',
+                      backendDOMNodeId: 5,
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    try {
+      const result = await handleSmartSnapshot({});
+      expect(result.isError).toBeUndefined();
+      const text = result.content[0]?.text ?? '';
+      expect(text).toContain('[+]');
+    } finally {
+      mockState.raw = {
+        role: 'RootWebArea',
+        name: 'example.com',
+        backendDOMNodeId: 1,
+        children: [
+          {
+            role: 'button',
+            name: 'Compose',
+            backendDOMNodeId: 12,
+            children: [],
+          },
+          {
+            role: 'link',
+            name: 'Inbox',
+            backendDOMNodeId: 15,
+            children: [],
+          },
+        ],
+      };
+      vi.unstubAllEnvs();
+    }
   });
 
   it('smart_snapshotShouldReturnTextContent', async () => {

@@ -19,9 +19,9 @@ import {remapVisibilityToUid} from '../build/src/tools/helpers.js';
 const BROWSER_URL = process.env.CDT_BROWSER_URL ?? 'http://172.27.64.1:9223';
 
 function countNodes(node) {
-  if (node === null || node === undefined) return 0;
+  if (node === null || node === undefined) {return 0;}
   let n = 1;
-  for (const c of node.children ?? []) n += countNodes(c);
+  for (const c of node.children ?? []) {n += countNodes(c);}
   return n;
 }
 

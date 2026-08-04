@@ -18,6 +18,31 @@ import type {ElementVisibilityInfo, RawAxNode} from './types.js';
 
 let browserInstance: Browser | undefined;
 let connectError: string | undefined;
+let pendingConnect: Promise<Browser> | undefined;
+
+/**
+ * Clears the singleton after the browser disconnects.
+ *
+ * @returns void
+ * @throws Never throws.
+ */
+function clearBrowserInstance(): void {
+  browserInstance = undefined;
+  pendingConnect = undefined;
+}
+
+/**
+ * Attaches a one-time disconnected handler so stale singletons are dropped.
+ *
+ * @param browser - Connected browser.
+ * @returns void
+ * @throws Never throws.
+ */
+function watchBrowserDisconnect(browser: Browser): void {
+  browser.on('disconnected', () => {
+    clearBrowserInstance();
+  });
+}
 
 /**
  * Above this AX-node count, per-node visibility collection (one CDP
@@ -66,33 +91,29 @@ async function openConnection(
 }
 
 /**
- * Connects to the browser (singleton), reconnecting once on failure.
+ * Opens a new browser connection with one automatic retry on failure.
  *
- * @returns Connected Browser.
- * @throws Error when connection fails after retry.
+ * @returns Connected Browser singleton instance.
+ * @throws Error when both connection attempts fail.
  */
-export async function connectBrowser(): Promise<Browser> {
+async function establishConnection(): Promise<Browser> {
   const config = loadConfig();
-  if (browserInstance !== undefined && browserInstance.connected) {
-    return browserInstance;
-  }
-
   try {
-    browserInstance = await openConnection(
-      config.wsEndpoint,
-      config.browserURL,
-    );
+    const browser = await openConnection(config.wsEndpoint, config.browserURL);
     connectError = undefined;
-    return browserInstance;
+    watchBrowserDisconnect(browser);
+    browserInstance = browser;
+    return browser;
   } catch (firstErr) {
-    // One automatic reconnect attempt per SPEC.
     try {
-      browserInstance = await openConnection(
+      const browser = await openConnection(
         config.wsEndpoint,
         config.browserURL,
       );
       connectError = undefined;
-      return browserInstance;
+      watchBrowserDisconnect(browser);
+      browserInstance = browser;
+      return browser;
     } catch (secondErr) {
       const msg = errorMessage(secondErr);
       const endpoint = config.wsEndpoint ?? config.browserURL;
@@ -100,6 +121,27 @@ export async function connectBrowser(): Promise<Browser> {
       throw new Error(connectError, {cause: firstErr});
     }
   }
+}
+
+/**
+ * Connects to the browser (singleton), reconnecting once on failure.
+ *
+ * @returns Connected Browser.
+ * @throws Error when connection fails after retry.
+ */
+export async function connectBrowser(): Promise<Browser> {
+  if (browserInstance !== undefined && browserInstance.connected) {
+    return browserInstance;
+  }
+
+  if (pendingConnect !== undefined) {
+    return pendingConnect;
+  }
+
+  pendingConnect = establishConnection().finally(() => {
+    pendingConnect = undefined;
+  });
+  return pendingConnect;
 }
 
 /**
@@ -126,8 +168,9 @@ export async function disconnectBrowser(): Promise<void> {
     } catch {
       // ignore disconnect errors during cleanup
     }
-    browserInstance = undefined;
+    clearBrowserInstance();
   }
+  pendingConnect = undefined;
 }
 
 /**
@@ -346,20 +389,26 @@ function countAxNodes(node: SerializedAXNode | null): number {
 export async function fetchAxTreeWithVisibility(page: Page): Promise<{
   raw: RawAxNode | null;
   visibilityByBackendId: Map<number, ElementVisibilityInfo>;
+  /** True when per-node visibility collection was skipped (page too large). */
+  visibilitySkipped: boolean;
 }> {
   const snapshot = await page.accessibility.snapshot({
     interestingOnly: true,
     includeIframes: true,
   });
   if (snapshot === null) {
-    return {raw: null, visibilityByBackendId: new Map()};
+    return {
+      raw: null,
+      visibilityByBackendId: new Map(),
+      visibilitySkipped: false,
+    };
   }
   const nodeCount = countAxNodes(snapshot);
-  const visibilityByBackendId =
-    nodeCount <= VISIBILITY_MAX_NODES
-      ? await collectVisibilityByBackendId(snapshot)
-      : new Map<number, ElementVisibilityInfo>();
-  return {raw: snapshotToRaw(snapshot), visibilityByBackendId};
+  const skipped = nodeCount > VISIBILITY_MAX_NODES;
+  const visibilityByBackendId = skipped
+    ? new Map<number, ElementVisibilityInfo>()
+    : await collectVisibilityByBackendId(snapshot);
+  return {raw: snapshotToRaw(snapshot), visibilityByBackendId, visibilitySkipped: skipped};
 }
 
 /**

@@ -9,6 +9,7 @@
 import {z} from 'zod';
 
 import {fetchAxTreeWithVisibility, getActivePage} from '../browser.js';
+import {loadConfig} from '../config.js';
 import {normalizeAxTree} from '../core/ax-tree.js';
 import {storeSnapshot} from '../core/diff.js';
 import {runSmartSnapshotPipeline} from '../core/snapshot.js';
@@ -29,7 +30,7 @@ export const smartSnapshotArgsSchema = z.object({
     .int()
     .min(1)
     .max(20)
-    .default(8)
+    .optional()
     .describe(
       'Maximum tree depth. Deeper subtrees are collapsed into a summary line.',
     ),
@@ -91,14 +92,16 @@ export async function handleSmartSnapshot(
 ): Promise<ToolTextResult> {
   try {
     const parsed = smartSnapshotArgsSchema.parse(args ?? {});
+    const config = loadConfig();
     const options: SnapshotOptions = {
-      maxDepth: parsed.maxDepth,
+      maxDepth: parsed.maxDepth ?? config.defaultMaxDepth,
       includeHidden: parsed.includeHidden,
       verbose: parsed.verbose,
     };
 
     const {page} = await getActivePage();
-    const {raw, visibilityByBackendId} = await fetchAxTreeWithVisibility(page);
+    const {raw, visibilityByBackendId, visibilitySkipped} =
+      await fetchAxTreeWithVisibility(page);
     const normalized = normalizeAxTree(raw, defaultUidMapper);
     const visibilityByUid = remapVisibilityToUid(
       normalized,
@@ -107,7 +110,8 @@ export async function handleSmartSnapshot(
     const result = runSmartSnapshotPipeline(
       normalized,
       options,
-      visibilityByUid,
+      visibilityByUid.size > 0 ? visibilityByUid : undefined,
+      visibilitySkipped,
     );
 
     // Keep diff baseline in sync when agents use smart_snapshot as the first look.

@@ -77,7 +77,8 @@ export async function handleSnapshotDiff(
     };
 
     const {page} = await getActivePage();
-    const {raw, visibilityByBackendId} = await fetchAxTreeWithVisibility(page);
+    const {raw, visibilityByBackendId, visibilitySkipped} =
+      await fetchAxTreeWithVisibility(page);
     const normalized = normalizeAxTree(raw, defaultUidMapper);
     const visibilityByUid = remapVisibilityToUid(
       normalized,
@@ -86,7 +87,8 @@ export async function handleSnapshotDiff(
     const result = runSmartSnapshotPipeline(
       normalized,
       options,
-      visibilityByUid,
+      visibilityByUid.size > 0 ? visibilityByUid : undefined,
+      visibilitySkipped,
     );
     // Diff against the pre-dedupe/collapse tree (see diffRoot doc): merged and
     // folded uids remain stable across snapshots, avoiding spurious ± entries.

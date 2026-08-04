@@ -80,7 +80,7 @@ while (queue.length > 0 && (renamed < 1 || added < 1)) {
     });
     added += 1;
   }
-  for (const c of node.children ?? []) queue.push(c);
+  for (const c of node.children ?? []) {queue.push(c);}
 }
 const step3 = runSnapshotDiff(mutated, snap.text);
 console.log(`[step3] ${step3.split('\n').length} lines, chars=${step3.length}`);

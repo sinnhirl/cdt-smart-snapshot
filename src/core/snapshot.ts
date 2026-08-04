@@ -96,7 +96,7 @@ function formatNodeLine(node: TextSnapshotNode): string {
   // include uid for interactive nodes so agents can act. For text without interaction
   // need, uid is still useful for diff — keep it.
   if (node.role === 'text' || node.role === 'StaticText') {
-    return `[text]${namePart}${countPart}`;
+    return `[text]${namePart}${countPart}${uidPart}`;
   }
 
   return `[${node.role}]${namePart}${countPart}${uidPart}`;
@@ -131,6 +131,9 @@ export interface SmartSnapshotResult {
  * @param root - Normalized AX tree (uids already assigned).
  * @param options - Snapshot options (maxDepth, includeHidden, verbose).
  * @param visibilityInfo - Optional uid → geometry map; when provided, applied first.
+ * @param hideUnevaluated - When true, nodes without evaluated visibility (and no
+ *   backendNodeId) are dropped — used when browser skipped per-node collection
+ *   on very large pages, so AX-only text/decoration nodes don't bloat the tree.
  * @returns Processed root and formatted text.
  * @throws Never throws. Empty trees format to a minimal Document line.
  */
@@ -138,6 +141,7 @@ export function runSmartSnapshotPipeline(
   root: TextSnapshotNode,
   options: SnapshotOptions,
   visibilityInfo?: Map<number, ElementVisibilityInfo>,
+  hideUnevaluated = false,
 ): SmartSnapshotResult {
   let tree = root;
 
@@ -145,7 +149,11 @@ export function runSmartSnapshotPipeline(
     tree = applyVisibility(tree, visibilityInfo);
   }
 
-  const afterVisibility = filterHidden(tree, options.includeHidden);
+  const afterVisibility = filterHidden(
+    tree,
+    options.includeHidden,
+    hideUnevaluated,
+  );
   if (afterVisibility === undefined) {
     const empty: TextSnapshotNode = {
       uid: root.uid,

@@ -30,11 +30,30 @@ function node(
   role: string,
   name: string,
   children: TextSnapshotNode[] = [],
-  value?: string,
+  extras?: Partial<
+    Pick<
+      TextSnapshotNode,
+      'value' | 'count' | 'collapsed' | 'childCount' | 'visible'
+    >
+  >,
 ): TextSnapshotNode {
   const n: TextSnapshotNode = {uid, role, name, children};
-  if (value !== undefined) {
-    n.value = value;
+  if (extras !== undefined) {
+    if (extras.value !== undefined) {
+      n.value = extras.value;
+    }
+    if (extras.count !== undefined) {
+      n.count = extras.count;
+    }
+    if (extras.collapsed !== undefined) {
+      n.collapsed = extras.collapsed;
+    }
+    if (extras.childCount !== undefined) {
+      n.childCount = extras.childCount;
+    }
+    if (extras.visible !== undefined) {
+      n.visible = extras.visible;
+    }
   }
   return n;
 }
@@ -115,10 +134,10 @@ describe('diff', () => {
 
   it('shouldReportChangedValue', () => {
     const prev = node(1, 'main', 'Main', [
-      node(2, 'textbox', 'Email', [], 'a@x.com'),
+      node(2, 'textbox', 'Email', [], {value: 'a@x.com'}),
     ]);
     const curr = node(1, 'main', 'Main', [
-      node(2, 'textbox', 'Email', [], 'b@y.com'),
+      node(2, 'textbox', 'Email', [], {value: 'b@y.com'}),
     ]);
     const result = computeDiff(prev, curr);
     const changed = result.entries.find(e => e.kind === 'changed');
@@ -152,6 +171,81 @@ describe('diff', () => {
     const text = runSnapshotDiff(curr, formatted);
     expect(text).toContain('(initial snapshot, no diff available)');
     expect(text).toContain('[Document] example.com');
+  });
+
+  it('shouldReportChangedWhenCountDiffers', () => {
+    const prev = node(1, 'main', 'Main', [
+      node(2, 'link', 'Item', [], {count: 1}),
+    ]);
+    const curr = node(1, 'main', 'Main', [
+      node(2, 'link', 'Item', [], {count: 3}),
+    ]);
+    const result = computeDiff(prev, curr);
+    const changed = result.entries.find(e => e.kind === 'changed');
+    expect(changed).toBeDefined();
+    if (changed !== undefined) {
+      expect(changed.detail).toContain('count');
+    }
+  });
+
+  it('shouldReportChangedWhenCollapsedStateDiffers', () => {
+    const prev = node(1, 'main', 'Main', [
+      node(2, 'article', 'Section', [node(3, 'link', 'Inner')], {
+        collapsed: false,
+      }),
+    ]);
+    const curr = node(1, 'main', 'Main', [
+      node(2, 'article', 'Section', [], {
+        collapsed: true,
+        childCount: 1,
+      }),
+    ]);
+    const result = computeDiff(prev, curr);
+    const changed = result.entries.find(
+      e => e.kind === 'changed' && e.node.uid === 2,
+    );
+    expect(changed).toBeDefined();
+    if (changed !== undefined) {
+      expect(changed.detail).toContain('collapsed');
+    }
+  });
+
+  it('shouldOmitPromotedRoleFromDiffContext', () => {
+    const promotedWrapper: TextSnapshotNode = {
+      uid: 99,
+      role: '__promoted__',
+      name: '',
+      children: [node(2, 'button', 'OK')],
+    };
+    const prev = node(1, 'navigation', 'Nav', [promotedWrapper]);
+    const curr = node(1, 'navigation', 'Nav', [
+      {
+        ...promotedWrapper,
+        children: [node(2, 'button', 'OK'), node(3, 'link', 'New')],
+      },
+    ]);
+    const result = computeDiff(prev, curr);
+    expect(result.text).not.toContain('__promoted__');
+    expect(result.text).toContain('navigation');
+  });
+
+  it('shouldReportChangedWhenNodeReparented', () => {
+    const prev = node(1, 'Document', 'page', [
+      node(10, 'main', 'Main', [node(2, 'button', 'Move')]),
+      node(20, 'aside', 'Side', []),
+    ]);
+    const curr = node(1, 'Document', 'page', [
+      node(10, 'main', 'Main', []),
+      node(20, 'aside', 'Side', [node(2, 'button', 'Move')]),
+    ]);
+    const result = computeDiff(prev, curr);
+    const changed = result.entries.find(
+      e => e.kind === 'changed' && e.node.uid === 2,
+    );
+    expect(changed).toBeDefined();
+    if (changed !== undefined) {
+      expect(changed.detail).toContain('parent uid');
+    }
   });
 
   it('shouldSortOutputByDomOrder', () => {
