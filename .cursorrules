@@ -1,33 +1,33 @@
-# cdt-smart-snapshot 项目规则（AI 必须遵守）
+# cdt-smart-snapshot project rules (AI must comply)
 
-## TypeScript 硬性规则（违反 = 重写）
-- 禁止使用 any 类型；禁止 as 类型断言；禁止 ! 非空断言
-- 禁止 // @ts-ignore、// @ts-nocheck、// @ts-expect-error 注释
-- 优先用 for..of 而不是 forEach
-- 类型只导入用 import type；形状定义用 interface 优先于 type
-- 数组类型用 Array<T> 简单形式（array-simple）
+## TypeScript hard rules (violation = rewrite)
+- No `any` type; no `as` type assertions; no `!` non-null assertions
+- No `// @ts-ignore`, `// @ts-nocheck`, `// @ts-expect-error` comments
+- Prefer `for..of` over `forEach`
+- Use `import type` for type-only imports; prefer `interface` over `type` for shapes
+- Use simple `Array<T>` form (array-simple rule)
 
-## 注释（本项目强制要求，用户明确要求）
-- 每个公共函数/方法必须有 JSDoc 注释：@param、@returns、@throws
-- 核心算法（visibility/diff/dedupe）每个函数顶部写「为什么」注释
-- 复杂逻辑行内注释解释意图，不要逐行翻译代码
+## Comments (mandatory — user requirement)
+- Every public function/method needs JSDoc: @param, @returns, @throws
+- Core algorithms (visibility/diff/dedupe) need a "why" comment at the top of each function
+- Inline comments explain intent on complex logic; never translate code line by line
 
-## TDD（铁律）
-- 先写测试，看它失败（RED），再写最小实现（GREEN），再重构（REFACTOR）
-- 没有失败测试就不写生产代码
-- 每个测试命名：shouldXxxWhenYyy 格式
+## TDD (iron law)
+- Write the test first, watch it fail (RED), then minimal implementation (GREEN), then refactor (REFACTOR)
+- No production code without a failing test
+- Test naming: shouldXxxWhenYyy format
 
-## 提交规范
+## Commit conventions
 - Conventional Commits: feat:/fix:/docs:/chore:/refactor:/test:
-- 一行标题 ≤ 72 字符
+- Title line ≤ 72 chars
 
-## 质量门
-- npm run check-format 必须零报错
-- npm run typecheck 必须零报错
-- npm run test 必须全绿
+## Quality gates
+- `npm run check-format` must be zero-error
+- `npm run typecheck` must be zero-error
+- `npm run test` must be all green
 
-## 项目背景（写代码前必读）
-- 定位：chrome-devtools-mcp 的 token 高效感知层，3 个工具：
-  smart_snapshot（语义级精简快照）/ snapshot_diff（增量）/ screenshot_to_disk（落盘）
-- 技术栈：Node 22 + TypeScript ESM + @modelcontextprotocol/sdk v1 + puppeteer-core + vitest
-- 完整 spec 在 /tmp/cdt-mcp-spec.md，实现时以其为准
+## Project background (read before writing code)
+- Positioning: token-efficient perception layer for chrome-devtools-mcp, 3 tools:
+  smart_snapshot (semantic snapshot) / snapshot_diff (incremental) / screenshot_to_disk (file path)
+- Stack: Node 22 + TypeScript ESM + @modelcontextprotocol/sdk v1 + puppeteer-core + vitest
+- Full spec is in SPEC.md — implement per that spec

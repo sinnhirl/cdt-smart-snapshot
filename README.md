@@ -59,7 +59,7 @@ Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
 
 ## Benchmark
 
-实测环境：WSL2 → Edge 151 (Windows) via portproxy 9223，页面为 UCI Gmail 收件箱（登录态，2026-08-04）。
+Measured 2026-08-04: WSL2 → Edge 151 (Windows) via portproxy 9223, on a logged-in UCI Gmail inbox.
 
 | Scenario | Official take_snapshot | smart_snapshot | snapshot_diff (avg/step) |
 |----------|------------------------|----------------|--------------------------|
@@ -68,13 +68,14 @@ Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
 | Change step (rename+add) | — | — | 8 lines, 421 chars |
 | 30-step session (est.) | ~135K chars ≈ 34K tokens | — | ~6K chars ≈ 1.5K tokens |
 
-注：官方 take_snapshot 的 181 节点中大部分是隐藏/offscreen/容器节点；
-smart_snapshot 只保留可见+可交互+有意义文本，token 消耗约为官方快照的
-1/5~1/8（文本树 vs 全量 AX 树），配合 snapshot_diff 的增量机制，30 步
-会话总 token 约为官方全量方案的 15~20%。
+Note: most of the official take_snapshot's 181 nodes are hidden/offscreen/container
+nodes. smart_snapshot keeps only visible + interactive + meaningful text, so token
+usage is roughly 1/5–1/8 of the official snapshot (text tree vs. full AX tree).
+Combined with snapshot_diff's incremental mechanism, a 30-step session consumes
+about 15–20% of the tokens of the official full-snapshot approach.
 
-复现：`node bench/bench.mjs`（需 Edge 调试模式 9222 + portproxy 9223，
-设置 `CDT_BROWSER_URL=http://<windows-host-ip>:9223`）。
+Reproduce: `node bench/bench.mjs` (requires Edge debugging mode on 9222 + portproxy
+9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
 
 ## Development
 
