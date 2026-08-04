@@ -113,9 +113,9 @@ describe('diff', () => {
 
   it('shouldReturnInitialSnapshotOnFirstCall', () => {
     const curr = node(1, 'Document', 'example.com', [
-      node(2, 'button', '写邮件'),
+      node(2, 'button', 'Compose'),
     ]);
-    const formatted = '[Document] example.com\n  [button] "写邮件" (uid=2)';
+    const formatted = '[Document] example.com\n  [button] "Compose" (uid=2)';
     const text = runSnapshotDiff(curr, formatted);
     expect(text).toContain('(initial snapshot, no diff available)');
     expect(text).toContain('[Document] example.com');

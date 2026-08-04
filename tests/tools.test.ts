@@ -25,13 +25,13 @@ const {
       children: [
         {
           role: 'button',
-          name: '写邮件',
+          name: 'Compose',
           backendDOMNodeId: 12,
           children: [],
         },
         {
           role: 'link',
-          name: '收件箱',
+          name: 'Inbox',
           backendDOMNodeId: 15,
           children: [],
         },
@@ -112,7 +112,7 @@ describe('tools', () => {
     const text = result.content[0]?.text ?? '';
     expect(text).toContain('example.com');
     expect(text).toContain('[button]');
-    expect(text).toContain('写邮件');
+    expect(text).toContain('Compose');
   });
 
   it('smart_snapshotShouldReturnErrorWhenNoPage', async () => {

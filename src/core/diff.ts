@@ -227,19 +227,19 @@ export function diffToText(
     return '(no changes since last snapshot)';
   }
 
-  const lines: string[] = ['── 变化摘要 ──'];
+  const lines: string[] = ['-- Changes --'];
   for (const entry of entries) {
     if (entry.kind === 'added') {
-      lines.push(`+ 新增 ${formatNodeShort(entry.node)}`);
+      lines.push(`+ added ${formatNodeShort(entry.node)}`);
     } else if (entry.kind === 'removed') {
-      lines.push(`- 消失 ${formatNodeShort(entry.node)}`);
+      lines.push(`- removed ${formatNodeShort(entry.node)}`);
     } else {
       const detail = entry.detail ?? '';
-      lines.push(`~ 变化 ${formatNodeShort(entry.node)} ${detail}`);
+      lines.push(`~ changed ${formatNodeShort(entry.node)} ${detail}`);
     }
   }
 
-  lines.push('── 上下文 ──');
+  lines.push('-- Context --');
   const contextLines = buildContextLines(entries, currRoot, prevRoot);
   for (const line of contextLines) {
     lines.push(line);

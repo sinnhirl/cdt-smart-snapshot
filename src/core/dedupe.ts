@@ -1,7 +1,7 @@
 /**
  * Sibling deduplication for snapshot trees.
  *
- * Why: Repeated identical controls (e.g. "已发送" ×3 in a mail list) waste tokens.
+ * Why: Repeated identical controls (e.g. "Sent" ×3 in a mail list) waste tokens.
  * Merging consecutive same role+name siblings into ×N keeps one representative uid
  * so agents can still target the first instance while reading a compact tree.
  */

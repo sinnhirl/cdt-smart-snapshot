@@ -61,13 +61,13 @@ export function formatTree(root: TextSnapshotNode, indent = 0): string {
  * Formats a single node into one SPEC line.
  *
  * @param node - Node to format.
- * @returns Line such as `[button] "OK" (uid=12)` or `[+] "name" (N 个子节点, uid=M)`.
+ * @returns Line such as `[button] "OK" (uid=12)` or `[+] "name" (N child nodes, uid=M)`.
  */
 function formatNodeLine(node: TextSnapshotNode): string {
   if (node.collapsed === true) {
     const label = node.name.length > 0 ? `"${node.name}"` : `"${node.role}"`;
     const count = node.childCount ?? 0;
-    return `[+] ${label} (${String(count)} 个子节点, uid=${String(node.uid)})`;
+    return `[+] ${label} (${String(count)} child nodes, uid=${String(node.uid)})`;
   }
 
   const namePart = node.name.length > 0 ? ` "${node.name}"` : '';

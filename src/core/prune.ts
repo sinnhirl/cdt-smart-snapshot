@@ -13,7 +13,7 @@ import type {TextSnapshotNode} from '../types.js';
  *
  * Why: BFS/DFS depth counting from the root (depth 0) matches how agents read the
  * indented text tree. At maxDepth the node is kept but its children are replaced
- * with collapsed metadata (childCount) for the `[+] "name" (N 个子节点, uid=M)` line.
+ * with collapsed metadata (childCount) for the `[+] "name" (N child nodes, uid=M)` line.
  *
  * @param root - Input snapshot tree.
  * @param maxDepth - Maximum depth to expand (root is depth 0).

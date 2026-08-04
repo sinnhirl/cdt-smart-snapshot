@@ -34,13 +34,13 @@ const defaultOptions: SnapshotOptions = {
 describe('snapshot', () => {
   it('shouldProduceFormattedTreeWithRolesNamesUids', () => {
     const tree = node(1, 'Document', 'example.com', [
-      node(12, 'button', '写邮件'),
-      node(15, 'link', '收件箱'),
+      node(12, 'button', 'Compose'),
+      node(15, 'link', 'Inbox'),
     ]);
     const text = formatTree(tree);
     expect(text).toContain('[Document] example.com');
-    expect(text).toContain('[button] "写邮件" (uid=12)');
-    expect(text).toContain('[link] "收件箱" (uid=15)');
+    expect(text).toContain('[button] "Compose" (uid=12)');
+    expect(text).toContain('[link] "Inbox" (uid=15)');
   });
 
   it('shouldApplyAllFourPipelinesInOrder', () => {
