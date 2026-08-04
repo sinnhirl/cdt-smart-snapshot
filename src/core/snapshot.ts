@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * smart_snapshot main pipeline: visibility → interaction → dedupe → prune → format.
  *

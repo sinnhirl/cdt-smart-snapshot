@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * Puppeteer-core browser connection management.
  * THIS IS THE ONLY MODULE THAT IMPORTS puppeteer-core.

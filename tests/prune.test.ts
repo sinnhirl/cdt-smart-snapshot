@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import {describe, expect, it} from 'vitest';
 
 import {pruneTree} from '../src/core/prune.js';

@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * snapshot_diff MCP tool — incremental changes since the last snapshot.
  */

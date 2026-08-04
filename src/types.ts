@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * Shared types for the smart-snapshot pipeline.
  * Kept free of runtime deps so core pure functions and tests can import freely.

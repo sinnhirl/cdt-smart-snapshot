@@ -25,7 +25,10 @@ function countNodes(node) {
   return n;
 }
 
-const browser = await puppeteer.connect({browserURL: BROWSER_URL});
+const browser = await puppeteer.connect({
+  browserURL: BROWSER_URL,
+  defaultViewport: null, // inherit real viewport; avoids 800x600 mini-windows
+});
 const pages = await browser.pages();
 const target =
   pages.find(p => p.url().includes('mail.google.com')) ?? pages.at(-1);

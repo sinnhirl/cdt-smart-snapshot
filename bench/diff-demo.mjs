@@ -39,7 +39,10 @@ async function snapshotPage(browser) {
   return {root: pruned, text};
 }
 
-const browser = await puppeteer.connect({browserURL: BROWSER_URL});
+const browser = await puppeteer.connect({
+  browserURL: BROWSER_URL,
+  defaultViewport: null, // inherit real viewport; avoids 800x600 mini-windows
+});
 
 resetDiffHistory();
 console.error('[demo] === Step 1: initial snapshot (full) ===');

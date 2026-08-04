@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * AX tree normalization — pure conversion from raw accessibility nodes to TextSnapshotNode.
  *

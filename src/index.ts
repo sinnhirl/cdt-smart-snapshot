@@ -1,3 +1,7 @@
+/** @license
+ * Copyright 2026 WANG Xinhe
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /**
  * MCP server entry: registers smart_snapshot, snapshot_diff, screenshot_to_disk.
  */
