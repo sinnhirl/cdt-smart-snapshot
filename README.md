@@ -42,20 +42,20 @@ Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| `smart_snapshot` | Visible + interactive semantic tree with depth limit and dedupe |
-| `snapshot_diff` | Added / removed / changed nodes since the last snapshot |
-| `screenshot_to_disk` | Write screenshot to disk; returns a file path (no base64) |
+| Tool                 | Purpose                                                         |
+| -------------------- | --------------------------------------------------------------- |
+| `smart_snapshot`     | Visible + interactive semantic tree with depth limit and dedupe |
+| `snapshot_diff`      | Added / removed / changed nodes since the last snapshot         |
+| `screenshot_to_disk` | Write screenshot to disk; returns a file path (no base64)       |
 
 ### Environment
 
-| Variable | Default | Meaning |
-|----------|---------|---------|
-| `CDT_WS_ENDPOINT` | _(unset)_ | Prefer WebSocket CDP endpoint when set |
-| `CDT_BROWSER_URL` | `http://127.0.0.1:9222` | HTTP CDP URL for `puppeteer.connect` |
-| `CDT_SNAPSHOT_DIR` | `$TMPDIR/cdt-snapshots` | Screenshot output directory |
-| `CDT_MAX_DEPTH` | `8` | Default maxDepth |
+| Variable           | Default                 | Meaning                                |
+| ------------------ | ----------------------- | -------------------------------------- |
+| `CDT_WS_ENDPOINT`  | _(unset)_               | Prefer WebSocket CDP endpoint when set |
+| `CDT_BROWSER_URL`  | `http://127.0.0.1:9222` | HTTP CDP URL for `puppeteer.connect`   |
+| `CDT_SNAPSHOT_DIR` | `$TMPDIR/cdt-snapshots` | Screenshot output directory            |
+| `CDT_MAX_DEPTH`    | `8`                     | Default maxDepth                       |
 
 ## Benchmark
 
@@ -66,31 +66,31 @@ loading; reduction is stable across rounds (max spread ≤ 2.1pp for 14/15 sites
 
 ### Per-site reduction (avg of valid rounds)
 
-| Site | Type | Official chars | Smart chars | Reduction |
-|------|------|----------------|-------------|-----------|
-| CNN | news portal | ~35K | ~1.2K | **96.5%** |
-| Amazon | e-commerce | ~37K | ~2K | **94.6%** |
-| BBC News | news portal | ~26K | ~2.2K | **91.3%** |
-| Reddit | social | ~31K | ~3.4K | **90.2%** |
-| 163.com | CN portal | ~31K | ~4.7K | **84.8%** |
-| JD.com | CN e-commerce | ~10K | ~2.4K | **76.9%** |
-| Stack Overflow | Q&A | ~24K | ~7K | **70.6%** |
-| Gmail | logged-in mail | ~73K | ~23K | **68.9%** |
-| YouTube | video | ~2.6K | ~1.4K | **47.6%** |
-| Bilibili | video | ~5.6K | ~3.6K | **35.8%** |
-| Wikipedia | long doc | ~578K | ~467K | **19.3%** |
-| GitHub | dev platform | ~3.3K | ~2.9K | **11.2%** |
-| Baidu | search | ~2K | ~1.8K | **10.4%** |
-| Zhihu | CN Q&A | ~2.7K | ~2.4K | **9.4%** |
-| Google | search | ~913 | ~855 | **6.3%** |
+| Site           | Type           | Official chars | Smart chars | Reduction |
+| -------------- | -------------- | -------------- | ----------- | --------- |
+| CNN            | news portal    | ~35K           | ~1.2K       | **96.5%** |
+| Amazon         | e-commerce     | ~37K           | ~2K         | **94.6%** |
+| BBC News       | news portal    | ~26K           | ~2.2K       | **91.3%** |
+| Reddit         | social         | ~31K           | ~3.4K       | **90.2%** |
+| 163.com        | CN portal      | ~31K           | ~4.7K       | **84.8%** |
+| JD.com         | CN e-commerce  | ~10K           | ~2.4K       | **76.9%** |
+| Stack Overflow | Q&A            | ~24K           | ~7K         | **70.6%** |
+| Gmail          | logged-in mail | ~73K           | ~23K        | **68.9%** |
+| YouTube        | video          | ~2.6K          | ~1.4K       | **47.6%** |
+| Bilibili       | video          | ~5.6K          | ~3.6K       | **35.8%** |
+| Wikipedia      | long doc       | ~578K          | ~467K       | **19.3%** |
+| GitHub         | dev platform   | ~3.3K          | ~2.9K       | **11.2%** |
+| Baidu          | search         | ~2K            | ~1.8K       | **10.4%** |
+| Zhihu          | CN Q&A         | ~2.7K          | ~2.4K       | **9.4%**  |
+| Google         | search         | ~913           | ~855        | **6.3%**  |
 
 ### snapshot_diff (incremental, Gmail)
 
-| Step | Output |
-|------|--------|
-| First call | full tree (~23K chars) |
-| No-op step | 1 line, 32 chars |
-| Change step | 8 lines, ~420 chars |
+| Step        | Output                 |
+| ----------- | ---------------------- |
+| First call  | full tree (~23K chars) |
+| No-op step  | 1 line, 32 chars       |
+| Change step | 8 lines, ~420 chars    |
 
 ### Reading the numbers
 
