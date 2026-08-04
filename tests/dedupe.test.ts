@@ -4,7 +4,7 @@
  */
 import {describe, expect, it} from 'vitest';
 
-import {dedupeTree} from '../src/core/dedupe.js';
+import {collapseSameNameChildren, dedupeTree} from '../src/core/dedupe.js';
 import type {TextSnapshotNode} from '../src/types.js';
 
 /**
@@ -64,6 +64,49 @@ describe('dedupe', () => {
     if (first !== undefined) {
       expect(first.uid).toBe(18);
       expect(first.count).toBe(3);
+    }
+  });
+});
+
+describe('collapseSameNameChildren', () => {
+  it('shouldCollapseSameNameTextChild', () => {
+    // [link] "首页" → [text] "首页" collapses to just the link.
+    const tree = node(1, 'navigation', 'Nav', [
+      node(18, 'link', '首页', [node(19, 'text', '首页')]),
+      node(20, 'link', '订阅'),
+    ]);
+    const result = collapseSameNameChildren(tree);
+    const home = result.children[0];
+    expect(home).toBeDefined();
+    if (home !== undefined) {
+      expect(home.children).toHaveLength(0);
+    }
+    expect(result.children).toHaveLength(2);
+  });
+
+  it('shouldCollapseSameRoleLinkChain', () => {
+    // [link] "首页" → [link] "首页" collapses the nested link.
+    const tree = node(1, 'navigation', 'Nav', [
+      node(18, 'link', '首页', [node(19, 'link', '首页')]),
+    ]);
+    const result = collapseSameNameChildren(tree);
+    const home = result.children[0];
+    expect(home).toBeDefined();
+    if (home !== undefined) {
+      expect(home.children).toHaveLength(0);
+    }
+  });
+
+  it('shouldKeepDistinctChildren', () => {
+    // [link] "首页" with a meaningful child stays intact.
+    const tree = node(1, 'navigation', 'Nav', [
+      node(18, 'link', '首页', [node(19, 'text', 'Home page')]),
+    ]);
+    const result = collapseSameNameChildren(tree);
+    const home = result.children[0];
+    expect(home).toBeDefined();
+    if (home !== undefined) {
+      expect(home.children).toHaveLength(1);
     }
   });
 });

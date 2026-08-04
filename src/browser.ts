@@ -20,6 +20,13 @@ let browserInstance: Browser | undefined;
 let connectError: string | undefined;
 
 /**
+ * Above this AX-node count, per-node visibility collection (one CDP
+ * round-trip per node) would be too slow — skip precise visibility and rely
+ * on role filtering + dedupe + depth prune instead.
+ */
+const VISIBILITY_MAX_NODES = 2000;
+
+/**
  * Describes a connected page plus helpers used by tools.
  */
 export interface ActivePage {
@@ -307,7 +314,30 @@ async function walkAxForVisibility(
 }
 
 /**
+ * Counts nodes in a raw AX tree (for the visibility fast-path threshold).
+ *
+ * @param node - Raw AX node.
+ * @returns Total node count.
+ */
+function countAxNodes(node: SerializedAXNode | null): number {
+  if (node === null || node === undefined) {
+    return 0;
+  }
+  let n = 1;
+  for (const child of node.children ?? []) {
+    n += countAxNodes(child);
+  }
+  return n;
+}
+
+/**
  * Fetches AX tree and visibility info in one pass (reuses the same snapshot).
+ *
+ * Why: per-node elementHandle().evaluate visibility collection costs one CDP
+ * round-trip per node. On huge pages (Wikipedia ~17k nodes) that is 17k
+ * sequential round-trips — effectively a hang. Above VISIBILITY_MAX_NODES we
+ * skip precise visibility and rely on role filtering + dedupe + depth prune
+ * (pure, millisecond-fast) so large pages stay responsive.
  *
  * @param page - Puppeteer page.
  * @returns Raw tree plus visibility keyed by backendNodeId.
@@ -324,7 +354,11 @@ export async function fetchAxTreeWithVisibility(page: Page): Promise<{
   if (snapshot === null) {
     return {raw: null, visibilityByBackendId: new Map()};
   }
-  const visibilityByBackendId = await collectVisibilityByBackendId(snapshot);
+  const nodeCount = countAxNodes(snapshot);
+  const visibilityByBackendId =
+    nodeCount <= VISIBILITY_MAX_NODES
+      ? await collectVisibilityByBackendId(snapshot)
+      : new Map<number, ElementVisibilityInfo>();
   return {raw: snapshotToRaw(snapshot), visibilityByBackendId};
 }
 

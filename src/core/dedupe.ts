@@ -48,3 +48,45 @@ export function dedupeTree(root: TextSnapshotNode): TextSnapshotNode {
 
   return {...root, children: dedupedChildren};
 }
+
+/**
+ * Collapses child nodes that repeat their parent's name.
+ *
+ * Why: Many SPA shells (YouTube nav, Baidu search bar) nest identical labels —
+ * `[link] "首页" → [link] "首页" → [text] "首页"`. Emitting all three triples
+ * the output for no extra information. When a child shares the parent's name
+ * and has no other meaningful children, fold it into the parent line.
+ *
+ * @param root - Snapshot tree (typically after dedupe).
+ * @returns Tree with same-name child chains collapsed.
+ * @throws Never throws.
+ */
+export function collapseSameNameChildren(root: TextSnapshotNode): TextSnapshotNode {
+  const keptChildren: TextSnapshotNode[] = [];
+
+  for (const child of root.children) {
+    const processed = collapseSameNameChildren(child);
+
+    // Fold a child whose name equals the parent's name and which is not a
+    // landmark/container with distinct siblings (it adds no information).
+    const sameNameAsParent =
+      processed.name.length > 0 && processed.name === root.name;
+    const isBareTextLeaf =
+      (processed.role === 'text' || processed.role === 'StaticText') &&
+      processed.children.length === 0;
+    const isSameRoleLinkChain =
+      processed.role === root.role &&
+      processed.children.every(
+        grandchild =>
+          grandchild.name === root.name || grandchild.name === '',
+      );
+
+    if (sameNameAsParent && (isBareTextLeaf || isSameRoleLinkChain)) {
+      // Skip this child; the parent line already carries the name.
+      continue;
+    }
+    keptChildren.push(processed);
+  }
+
+  return {...root, children: keptChildren};
+}

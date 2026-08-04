@@ -14,7 +14,7 @@ import type {
   SnapshotOptions,
   TextSnapshotNode,
 } from '../types.js';
-import {dedupeTree} from './dedupe.js';
+import {dedupeTree, collapseSameNameChildren} from './dedupe.js';
 import {filterByInteraction} from './interaction.js';
 import {pruneTree} from './prune.js';
 import {applyVisibility, filterHidden} from './visibility.js';
@@ -160,6 +160,8 @@ export function runSmartSnapshotPipeline(
   tree = afterInteraction;
 
   tree = dedupeTree(tree);
+  // Collapse same-name child chains (SPA nav shells) before depth-limiting.
+  tree = collapseSameNameChildren(tree);
   tree = pruneTree(tree, options.maxDepth);
 
   return {root: tree, formatted: formatTree(tree)};
