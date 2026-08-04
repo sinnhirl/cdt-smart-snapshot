@@ -14,7 +14,7 @@ import {normalizeAxTree} from '../build/src/core/ax-tree.js';
 import {defaultUidMapper} from '../build/src/core/uid.js';
 import {applyVisibility, filterHidden} from '../build/src/core/visibility.js';
 import {filterByInteraction} from '../build/src/core/interaction.js';
-import {dedupeTree} from '../build/src/core/dedupe.js';
+import {dedupeTree, collapseSameNameChildren} from '../build/src/core/dedupe.js';
 import {pruneTree} from '../build/src/core/prune.js';
 import {formatTree} from '../build/src/core/snapshot.js';
 import {remapVisibilityToUid} from '../build/src/tools/helpers.js';
@@ -114,7 +114,8 @@ async function measurePage(browser, site) {
     const visibleOnly = filterHidden(withVis, false);
     const interactive = filterByInteraction(visibleOnly, false);
     const deduped = dedupeTree(interactive);
-    const pruned = pruneTree(deduped, {maxDepth: 8});
+    const collapsed = collapseSameNameChildren(deduped);
+    const pruned = pruneTree(collapsed, {maxDepth: 8});
     const smartText = formatTree(pruned);
     const smartNodes = countNodes(pruned);
 

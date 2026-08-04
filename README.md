@@ -59,23 +59,54 @@ Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
 
 ## Benchmark
 
-Measured 2026-08-04: WSL2 → Edge 151 (Windows) via portproxy 9223, on a logged-in UCI Gmail inbox.
+Measured 2026-08-04 on Edge 151 (Windows) via WSL2 + portproxy 9223.
+15 diverse real sites × 3 rounds, official take_snapshot-equivalent (full AX
+tree, official format) vs. smart_snapshot pipeline. Network idle + retry
+loading; reduction is stable across rounds (max spread ≤ 2.1pp for 14/15 sites).
 
-| Scenario | Official take_snapshot | smart_snapshot | snapshot_diff (avg/step) |
-|----------|------------------------|----------------|--------------------------|
-| Mail inbox cold open | 181 AX nodes (~4.5K chars) | ~90 lines (~4.2K chars) | — |
-| No-op step | — | — | 1 line, 32 chars |
-| Change step (rename+add) | — | — | 8 lines, 421 chars |
-| 30-step session (est.) | ~135K chars ≈ 34K tokens | — | ~6K chars ≈ 1.5K tokens |
+### Per-site reduction (avg of valid rounds)
 
-Note: most of the official take_snapshot's 181 nodes are hidden/offscreen/container
-nodes. smart_snapshot keeps only visible + interactive + meaningful text, so token
-usage is roughly 1/5–1/8 of the official snapshot (text tree vs. full AX tree).
-Combined with snapshot_diff's incremental mechanism, a 30-step session consumes
-about 15–20% of the tokens of the official full-snapshot approach.
+| Site | Type | Official chars | Smart chars | Reduction |
+|------|------|----------------|-------------|-----------|
+| CNN | news portal | ~35K | ~1.2K | **96.5%** |
+| Amazon | e-commerce | ~37K | ~2K | **94.6%** |
+| BBC News | news portal | ~26K | ~2.2K | **91.3%** |
+| Reddit | social | ~31K | ~3.4K | **90.2%** |
+| 163.com | CN portal | ~31K | ~4.7K | **84.8%** |
+| JD.com | CN e-commerce | ~10K | ~2.4K | **76.9%** |
+| Stack Overflow | Q&A | ~24K | ~7K | **70.6%** |
+| Gmail | logged-in mail | ~73K | ~23K | **68.9%** |
+| YouTube | video | ~2.6K | ~1.4K | **47.6%** |
+| Bilibili | video | ~5.6K | ~3.6K | **35.8%** |
+| Wikipedia | long doc | ~578K | ~467K | **19.3%** |
+| GitHub | dev platform | ~3.3K | ~2.9K | **11.2%** |
+| Baidu | search | ~2K | ~1.8K | **10.4%** |
+| Zhihu | CN Q&A | ~2.7K | ~2.4K | **9.4%** |
+| Google | search | ~913 | ~855 | **6.3%** |
 
-Reproduce: `node bench/bench.mjs` (requires Edge debugging mode on 9222 + portproxy
-9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
+### snapshot_diff (incremental, Gmail)
+
+| Step | Output |
+|------|--------|
+| First call | full tree (~23K chars) |
+| No-op step | 1 line, 32 chars |
+| Change step | 8 lines, ~420 chars |
+
+### Reading the numbers
+
+- **High reduction (68–97%)**: portals / e-commerce / news / social — the
+  page types agents operate on most. Hidden/ads/container nodes are dropped.
+- **Medium (19–48%)**: video / long-doc — nav chains collapsed; body text kept.
+- **Low (6–11%)**: search / Q&A / docs — official interestingOnly already
+  trimmed most junk; body text is intentionally retained for the agent to read.
+  This is a token-vs-information tradeoff, not a defect. For extreme savings
+  on content pages, use `evaluate` to read specific sections.
+
+Combined with snapshot_diff, a 30-step agent session on an interactive page
+consumes roughly 15–20% of the tokens of repeated full take_snapshot calls.
+
+Reproduce: `node bench/multi-site-3x.mjs` (requires Edge debugging mode on 9222
++ portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
 
 ## Development
 
