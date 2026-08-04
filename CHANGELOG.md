@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.0...v0.1.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* implement remaining bugfix batch (M2+M6, D1+D2, V1, M5, M1, B1+B2, N1, B4) ([3b2bb52](https://github.com/sinnhirl/cdt-smart-snapshot/commit/3b2bb52ad01f54a0c66bcfbeda51f93a168c00df))
+* stable logical-path uid for AX-only nodes (C1) ([42f9a14](https://github.com/sinnhirl/cdt-smart-snapshot/commit/42f9a14a3626541c6535ae89aaa7ac72e749a814))
+* use pre-dedupe/collapse tree as diff baseline (C2) ([6677982](https://github.com/sinnhirl/cdt-smart-snapshot/commit/6677982322fb517ba97c6c228f837ac2227eacd9))
+
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
