@@ -1,0 +1,49 @@
+{
+  "name": "cdt-smart-snapshot",
+  "version": "0.1.0",
+  "description": "Token-efficient snapshot MCP server for Chrome DevTools protocol: smart_snapshot, snapshot_diff, screenshot_to_disk",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=23"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "eslint --fix . && prettier --write .",
+    "check-format": "eslint . && prettier --check .",
+    "start": "node build/src/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "chrome-devtools",
+    "cdp",
+    "accessibility",
+    "token-efficient",
+    "llm",
+    "agent"
+  ],
+  "files": [
+    "build/src"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "puppeteer-core": "^24.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@stylistic/eslint-plugin": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

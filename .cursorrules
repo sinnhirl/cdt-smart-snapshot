@@ -1,0 +1,33 @@
+# cdt-smart-snapshot 项目规则（AI 必须遵守）
+
+## TypeScript 硬性规则（违反 = 重写）
+- 禁止使用 any 类型；禁止 as 类型断言；禁止 ! 非空断言
+- 禁止 // @ts-ignore、// @ts-nocheck、// @ts-expect-error 注释
+- 优先用 for..of 而不是 forEach
+- 类型只导入用 import type；形状定义用 interface 优先于 type
+- 数组类型用 Array<T> 简单形式（array-simple）
+
+## 注释（本项目强制要求，用户明确要求）
+- 每个公共函数/方法必须有 JSDoc 注释：@param、@returns、@throws
+- 核心算法（visibility/diff/dedupe）每个函数顶部写「为什么」注释
+- 复杂逻辑行内注释解释意图，不要逐行翻译代码
+
+## TDD（铁律）
+- 先写测试，看它失败（RED），再写最小实现（GREEN），再重构（REFACTOR）
+- 没有失败测试就不写生产代码
+- 每个测试命名：shouldXxxWhenYyy 格式
+
+## 提交规范
+- Conventional Commits: feat:/fix:/docs:/chore:/refactor:/test:
+- 一行标题 ≤ 72 字符
+
+## 质量门
+- npm run check-format 必须零报错
+- npm run typecheck 必须零报错
+- npm run test 必须全绿
+
+## 项目背景（写代码前必读）
+- 定位：chrome-devtools-mcp 的 token 高效感知层，3 个工具：
+  smart_snapshot（语义级精简快照）/ snapshot_diff（增量）/ screenshot_to_disk（落盘）
+- 技术栈：Node 22 + TypeScript ESM + @modelcontextprotocol/sdk v1 + puppeteer-core + vitest
+- 完整 spec 在 /tmp/cdt-mcp-spec.md，实现时以其为准

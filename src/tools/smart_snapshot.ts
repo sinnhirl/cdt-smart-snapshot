@@ -1,0 +1,115 @@
+/**
+ * smart_snapshot MCP tool — token-efficient semantic page snapshot.
+ */
+
+import {z} from 'zod';
+
+import {fetchAxTreeWithVisibility, getActivePage} from '../browser.js';
+import {normalizeAxTree} from '../core/ax-tree.js';
+import {storeSnapshot} from '../core/diff.js';
+import {runSmartSnapshotPipeline} from '../core/snapshot.js';
+import {defaultUidMapper} from '../core/uid.js';
+import type {SnapshotOptions, ToolTextResult} from '../types.js';
+import {
+  errorResult,
+  remapVisibilityToUid,
+  textResult,
+  toErrorMessage,
+  type ToolDefinition,
+} from './helpers.js';
+
+/** Zod schema for smart_snapshot arguments. */
+export const smartSnapshotArgsSchema = z.object({
+  maxDepth: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(8)
+    .describe(
+      'Maximum tree depth. Deeper subtrees are collapsed into a summary line.',
+    ),
+  includeHidden: z
+    .boolean()
+    .default(false)
+    .describe(
+      'If true, include offscreen/hidden nodes (useful for debugging). Default false.',
+    ),
+  verbose: z
+    .boolean()
+    .default(false)
+    .describe(
+      'If true, include container/static nodes too. Default false (interactive + meaningful text only).',
+    ),
+});
+
+/** Tool metadata for tools/list. */
+export const smartSnapshotDefinition: ToolDefinition = {
+  name: 'smart_snapshot',
+  description:
+    'Returns a token-efficient semantic snapshot of the current page: only visible, interactive and meaningful nodes, with depth limiting and deduplication. Use this instead of take_snapshot to save context.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      maxDepth: {
+        type: 'number',
+        description:
+          'Maximum tree depth. Deeper subtrees are collapsed into a summary line.',
+        minimum: 1,
+        maximum: 20,
+        default: 8,
+      },
+      includeHidden: {
+        type: 'boolean',
+        description:
+          'If true, include offscreen/hidden nodes (useful for debugging). Default false.',
+        default: false,
+      },
+      verbose: {
+        type: 'boolean',
+        description:
+          'If true, include container/static nodes too. Default false (interactive + meaningful text only).',
+        default: false,
+      },
+    },
+  },
+};
+
+/**
+ * Executes smart_snapshot against the active browser page.
+ *
+ * @param args - Raw tool arguments (validated via zod).
+ * @returns MCP text result (or isError on failure).
+ * @throws Never throws — errors are returned as isError results.
+ */
+export async function handleSmartSnapshot(
+  args: Record<string, unknown> | undefined,
+): Promise<ToolTextResult> {
+  try {
+    const parsed = smartSnapshotArgsSchema.parse(args ?? {});
+    const options: SnapshotOptions = {
+      maxDepth: parsed.maxDepth,
+      includeHidden: parsed.includeHidden,
+      verbose: parsed.verbose,
+    };
+
+    const {page} = await getActivePage();
+    const {raw, visibilityByBackendId} = await fetchAxTreeWithVisibility(page);
+    const normalized = normalizeAxTree(raw, defaultUidMapper);
+    const visibilityByUid = remapVisibilityToUid(
+      normalized,
+      visibilityByBackendId,
+    );
+    const result = runSmartSnapshotPipeline(
+      normalized,
+      options,
+      visibilityByUid,
+    );
+
+    // Keep diff baseline in sync when agents use smart_snapshot as the first look.
+    storeSnapshot(result.root, result.formatted);
+    return textResult(result.formatted);
+  } catch (err) {
+    return errorResult(toErrorMessage(err));
+  }
+}
