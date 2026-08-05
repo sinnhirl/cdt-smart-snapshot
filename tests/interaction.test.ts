@@ -112,4 +112,50 @@ describe('interaction', () => {
     const dropped = filterByInteraction(node(1, 'text', ''), false);
     expect(dropped).toBeUndefined();
   });
+
+  it('shouldFoldRedundantTextChildrenUnderInteractiveControls', () => {
+    // ROUND3-2: Baidu/Zhihu pages are mostly link+text-child trees. A link's
+    // accessible name already contains its label; the text child is redundant
+    // and inflates output (negative reduction vs official). Non-verbose mode
+    // should fold text/StaticText children under link/button controls, but
+    // keep standalone text nodes (body content) untouched.
+    const tree = node(1, 'link', '新闻', [
+      node(2, 'text', '新闻'),
+      node(3, 'StaticText', '新闻'),
+    ]);
+    const result = filterByInteraction(tree, false);
+    expect(result).toBeDefined();
+    if (result !== undefined) {
+      expect(result.role).toBe('link');
+      expect(result.name).toBe('新闻');
+      const roles = collectRoles(result);
+      expect(roles).toEqual(['link']);
+    }
+  });
+
+  it('shouldKeepTextChildrenUnderTextboxControls', () => {
+    // Interactive controls that DO need their text children (textbox value,
+    // combobox selected item) must not be folded. Only self-labeling controls
+    // (link/button) fold their redundant text children.
+    const tree = node(1, 'textbox', 'Search', [
+      node(2, 'text', 'typed query'),
+    ]);
+    const result = filterByInteraction(tree, false);
+    expect(result).toBeDefined();
+    if (result !== undefined) {
+      const roles = collectRoles(result);
+      expect(roles).toContain('text');
+    }
+  });
+
+  it('shouldKeepTextChildrenUnderInteractiveControlsInVerboseMode', () => {
+    // Verbose mode is the escape hatch: keep everything for debugging.
+    const tree = node(1, 'link', '新闻', [node(2, 'text', '新闻')]);
+    const result = filterByInteraction(tree, true);
+    expect(result).toBeDefined();
+    if (result !== undefined) {
+      const roles = collectRoles(result);
+      expect(roles).toEqual(['link', 'text']);
+    }
+  });
 });

@@ -118,6 +118,27 @@ export function shouldCollapseRole(role: string, name: string): boolean {
 }
 
 /**
+ * Roles whose accessible name already contains their visible label, so text
+ * children are redundant and folded in non-verbose mode.
+ *
+ * Why: On label-heavy pages (Baidu/Zhihu — mostly link+text-child trees), a
+ * link's accessible name already carries the label; its text/StaticText
+ * children only duplicate it and inflate output (measured +15% chars, making
+ * smart output larger than official — negative reduction). Self-labeling
+ * controls fold those children; controls that expose dynamic values (textbox
+ * typed input, combobox selection) keep them.
+ */
+const SELF_LABELING_CONTROLS: ReadonlySet<string> = new Set([
+  'link',
+  'button',
+  'menuitem',
+  'tab',
+  'checkbox',
+  'radio',
+  'switch',
+]);
+
+/**
  * Filters a tree to interactive / meaningful nodes; collapses container roles.
  *
  * Why: Collapsing (promoting children) preserves DOM order of interactive nodes
@@ -145,6 +166,14 @@ export function filterByInteraction(
   if (verbose) {
     return {...root, children: filteredChildren};
   }
+
+  // Self-labeling controls (link/button/...) carry their text in the name;
+  // fold redundant text/StaticText children so label-heavy pages don't bloat.
+  const finalChildren = SELF_LABELING_CONTROLS.has(root.role)
+    ? filteredChildren.filter(
+        c => c.role !== 'text' && c.role !== 'StaticText',
+      )
+    : filteredChildren;
 
   if (shouldCollapseRole(root.role, root.name)) {
     // Promote children: return a synthetic holder only when we need a single root.
@@ -190,5 +219,5 @@ export function filterByInteraction(
     };
   }
 
-  return {...root, children: filteredChildren};
+  return {...root, children: finalChildren};
 }
