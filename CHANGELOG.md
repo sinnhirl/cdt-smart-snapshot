@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.3...v0.1.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* detect direct run via realpath so npm bin symlink works ([47ede84](https://github.com/sinnhirl/cdt-smart-snapshot/commit/47ede8447f5c666aade8c9b3745f9b54f624b749))
+
 ## [0.1.3](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.2...v0.1.3) (2026-08-05)
 
 
