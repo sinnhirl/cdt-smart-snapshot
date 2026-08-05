@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.2.0...v0.2.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* accurate errors for AX-only nodes in get_node/element_to_selector (R4-longtest) ([7deb2ec](https://github.com/sinnhirl/cdt-smart-snapshot/commit/7deb2ec6458b315db036936d8fff555342c05ed6))
+* get_node cssSelector placeholder + page_status format polish (R4-4 R4-5 R4-6) ([62dc629](https://github.com/sinnhirl/cdt-smart-snapshot/commit/62dc629a3419c369c59def92d6f111ad95a45f7f))
+* page_search no-match message no longer claims empty index (R4-longtest) ([fd07bd7](https://github.com/sinnhirl/cdt-smart-snapshot/commit/fd07bd7183065acba26aab3d88096252547a7c9b))
+* reuse CDP session for DOM lookup so objectId resolves (R4-1) ([36e05f8](https://github.com/sinnhirl/cdt-smart-snapshot/commit/36e05f87808282ff74ab9599b92db05ffb157971))
+
 ## [0.2.0](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.7...v0.2.0) (2026-08-05)
 
 
