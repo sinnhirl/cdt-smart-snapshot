@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.1...v0.1.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* exclude name from logical-path uid key (C1) + wire snapshot_diff to CDT_MAX_DEPTH (B4) ([0d893f5](https://github.com/sinnhirl/cdt-smart-snapshot/commit/0d893f5cf7cd8302297e190ecc34fedf69610182))
+
 ## [0.1.1](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.0...v0.1.1) (2026-08-04)
 
 
