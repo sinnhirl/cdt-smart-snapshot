@@ -2,52 +2,52 @@
   "changelog-sections": [
     {
       "type": "feat",
-      "section": "🚀 Features",
+      "section": "Features",
       "hidden": false
     },
     {
       "type": "fix",
-      "section": "🐛 Bug Fixes",
+      "section": "Bug Fixes",
       "hidden": false
     },
     {
       "type": "perf",
-      "section": "⚡ Performance",
+      "section": "Performance",
       "hidden": false
     },
     {
       "type": "refactor",
-      "section": "♻️ Refactor",
+      "section": "Refactor",
       "hidden": false
     },
     {
       "type": "docs",
-      "section": "📚 Documentation",
+      "section": "Documentation",
       "hidden": false
     },
     {
       "type": "style",
-      "section": "🎨 Style",
+      "section": "Style",
       "hidden": false
     },
     {
       "type": "chore",
-      "section": "🔧 Chores",
+      "section": "Chores",
       "hidden": true
     },
     {
       "type": "test",
-      "section": "🔧 Chores",
+      "section": "Chores",
       "hidden": true
     },
     {
       "type": "build",
-      "section": "🔧 Chores",
+      "section": "Chores",
       "hidden": true
     },
     {
       "type": "ci",
-      "section": "🔧 Chores",
+      "section": "Chores",
       "hidden": true
     }
   ],

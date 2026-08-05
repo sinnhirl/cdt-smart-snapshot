@@ -5,21 +5,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [0.2.1](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.2.0...v0.2.1) (2026-08-05)
 
-### 🚨 重大修复：DOM 查询工具现在真正可用了 (R4-1)
+### Major fix: DOM query tools actually work now (R4-1)
 
-v0.2.0 引入的 `get_node` / `element_to_selector` 存在严重缺陷：**所有 DOM 反查
-100% 失败**。原因是 CDP 的 objectId 绑定创建它的 session，原实现在一个 session
-里 resolve 节点、又在另一个 session 里读取 DOM，导致 objectId 失效——工具只能
-永远降级为 `domState: unavailable`。
+v0.2.0 shipped a serious defect in `get_node` / `element_to_selector`: **every
+DOM lookup failed 100% of the time**. Root cause: CDP objectIds are bound to
+the session that created them; the implementation resolved the node in one CDP
+session and read DOM in a second, so the objectId was invalid and the tools
+could only degrade to `domState: unavailable`.
 
-v0.2.1 修复：resolve 和读取复用同一个 CDP session。修复后（真机验证）：
+Fixed in v0.2.1: resolve and read reuse the same CDP session. Verified against
+a real browser:
 
-- `get_node(uid)` 返回真实的 tagName / cssSelector / rect / visible / textContent
-- `element_to_selector(uid)` 能生成唯一 CSS 选择器，可直接喂给官方
-  chrome-devtools-mcp 的 click/fill 使用
-- `queryDomByBackendNodeId` 补上 session 释放，避免连接泄漏
+- `get_node(uid)` returns real tagName / cssSelector / rect / visible / textContent
+- `element_to_selector(uid)` returns a unique CSS selector you can feed
+  straight to the official chrome-devtools-mcp `click` / `fill`
+- `queryDomByBackendNodeId` releases its session to avoid connection leaks
 
-> 如果你在用 v0.2.0，请升级：`npm install -g cdt-smart-snapshot@latest`
+> If you are on v0.2.0, upgrade: `npm install -g cdt-smart-snapshot@latest`
 
 ### Bug Fixes
 
@@ -91,7 +93,7 @@ v0.2.1 修复：resolve 和读取复用同一个 CDP session。修复后（真�
 
 ## [Unreleased]
 
-### 🐛 Bug Fixes
+### Bug Fixes
 
 - Stable logical-path uid for AX-only nodes so diff no longer reports spurious removed+added (C1)
 - Use pre-dedupe/collapse tree as diff baseline (C2)
@@ -108,7 +110,7 @@ v0.2.1 修复：resolve 和读取复用同一个 CDP session。修复后（真�
 
 ## [0.1.0] - 2026-08-04
 
-### 🚀 Features
+### Features
 
 - Initial release: token-efficient snapshot MCP server for Chrome DevTools Protocol
 - `smart_snapshot`: visible + interactive semantic tree with depth limit, dedupe, same-name chain collapse
