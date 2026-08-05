@@ -222,6 +222,14 @@ consumes roughly 15–20% of the tokens of repeated full take_snapshot calls.
 Reproduce: `node bench/multi-site-3x.mjs` (requires Edge debugging mode on 9222
 → portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
 
+## Snapshot output
+
+Every snapshot starts with the page root line, e.g.
+`[RootWebArea] DeepSeek 开放平台`. Named images appear as `[image] "name"`
+(Chrome's AX tree reports the role `image`). These lines were missing before
+v0.1.7 — the root was dropped by the visibility pass and named logos were
+filtered out — so any snapshot output you see is from v0.1.7+ unless stated.
+
 ## Development
 
 ```bash
