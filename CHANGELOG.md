@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.7...v0.2.0) (2026-08-05)
+
+
+### Features
+
+* add browser dom query + diagnostics (queryDomByBackendNodeId / elementToSelector / page diagnostics) ([7e2cbc4](https://github.com/sinnhirl/cdt-smart-snapshot/commit/7e2cbc4187f8977e8820cc23c5aeef0bd641612f))
+* add css selector builder core ([9848a5a](https://github.com/sinnhirl/cdt-smart-snapshot/commit/9848a5a066731288d6d8d118ad57b2f6192fdc98))
+* add element_to_selector tool ([b1b5944](https://github.com/sinnhirl/cdt-smart-snapshot/commit/b1b5944d5709b9a07b61adafa2c3583617ab7c61))
+* add get_node tool ([d4d0966](https://github.com/sinnhirl/cdt-smart-snapshot/commit/d4d0966e0fdccde690b3f269a97b03bbcf541c38))
+* add page_search tool ([3b78a0d](https://github.com/sinnhirl/cdt-smart-snapshot/commit/3b78a0d58cb25162eb3cdbc2a033582b574e5b2f))
+* add page_status tool ([d73dd54](https://github.com/sinnhirl/cdt-smart-snapshot/commit/d73dd543050c6c6c6446d00d8f694e2c053dba5c))
+* add uid index core (buildUidIndex/searchIndex/lookupIndex) ([87b0452](https://github.com/sinnhirl/cdt-smart-snapshot/commit/87b0452855c80afe2b8b715445cc672a7b767ed2))
+* register new tools in index + wire uid index refresh ([3a0e441](https://github.com/sinnhirl/cdt-smart-snapshot/commit/3a0e4410d714f82160d8f2f920d236258cd08dd2))
+
 ## [0.1.7](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.6...v0.1.7) (2026-08-05)
 
 
