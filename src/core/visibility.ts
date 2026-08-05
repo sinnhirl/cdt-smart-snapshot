@@ -57,6 +57,7 @@ export function assessVisibility(info: ElementVisibilityInfo): VisibilityState {
  *
  * Why: browser.ts batch-queries DOM geometry once; this pure step stamps results
  * onto nodes so later filters can drop hidden/offscreen without touching puppeteer.
+ * Nodes missing from the map keep visible/offscreen undefined (never assumed visible).
  *
  * @param root - Snapshot tree whose nodes already have stable uids.
  * @param infoByUid - Geometry/CSS info keyed by node uid.
@@ -74,14 +75,6 @@ export function applyVisibility(
   }
 
   if (info === undefined) {
-    if (root.backendNodeId !== undefined && infoByUid.size > 0) {
-      return {
-        ...root,
-        children,
-        visible: true,
-        offscreen: false,
-      };
-    }
     return {
       ...root,
       children,
@@ -98,18 +91,74 @@ export function applyVisibility(
 }
 
 /**
+ * Marks nodes with a DOM backend id as visible when per-node geometry was skipped.
+ *
+ * Why: On huge pages we skip per-node CDP collection; without this stamp every
+ * node would be unevaluated and hideUnevaluated would drop the entire tree.
+ * AX-only nodes (no backendNodeId) stay unevaluated and are still dropped.
+ *
+ * @param root - Normalized tree before visibility filtering.
+ * @returns Tree copy with visible/offscreen set on backend-linked nodes only.
+ * @throws Never throws.
+ */
+export function stampOptimisticDomVisibility(
+  root: TextSnapshotNode,
+): TextSnapshotNode {
+  const children: TextSnapshotNode[] = [];
+  for (const child of root.children) {
+    children.push(stampOptimisticDomVisibility(child));
+  }
+  if (root.backendNodeId !== undefined) {
+    return {
+      ...root,
+      children,
+      visible: true,
+      offscreen: false,
+    };
+  }
+  return {...root, children};
+}
+
+/**
+ * Returns true when a node should be dropped for visibility (not includeHidden).
+ *
+ * @param root - Node being considered.
+ * @param hideUnevaluated - Large-page mode: drop nodes without visible===true.
+ * @param visibilityEvaluated - True when a non-empty visibility map was applied.
+ * @returns Whether the node itself is filtered out (children may still promote).
+ */
+function isSelfVisibilityDropped(
+  root: TextSnapshotNode,
+  hideUnevaluated: boolean,
+  visibilityEvaluated: boolean,
+): boolean {
+  if (root.visible === false || root.offscreen === true) {
+    return true;
+  }
+  if (visibilityEvaluated && root.visible !== true) {
+    // Partial or full geometry pass: unevaluated nodes are not assumed visible.
+    return true;
+  }
+  if (hideUnevaluated && root.visible !== true) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Filters a tree, dropping hidden (and optionally offscreen) nodes.
  *
  * Why: Default snapshots should exclude anything the user cannot see; includeHidden
- * keeps them for debugging. Children of dropped nodes are also dropped (no promotion).
+ * keeps them for debugging. When a node is dropped, visible descendants are
+ * promoted to the nearest kept ancestor (menus inside display:none shells, etc.).
  *
- * @param root - Tree with visibility flags already applied.
+ * @param root - Tree with visibility flags already applied (or stamped on skip).
  * @param includeHidden - When true, keep hidden and offscreen nodes.
  * @param hideUnevaluated - When true, nodes whose visibility was not evaluated
- *   (visible !== true) are dropped UNLESS they have a backendNodeId (a real DOM
- *   handle — treat as visible since it paints). Used on large pages where
- *   per-node geometry collection is skipped: drops AX-only text/decoration
- *   nodes without nuking interactive DOM nodes.
+ *   (visible !== true) are dropped. On large pages, stampOptimisticDomVisibility
+ *   runs first so real DOM nodes survive while AX-only decoration is dropped.
+ * @param visibilityEvaluated - When true, a non-empty visibility map was applied
+ *   and nodes without visible===true are dropped even if hideUnevaluated is false.
  * @returns Filtered tree, or undefined if the root itself is filtered out.
  * @throws Never throws.
  */
@@ -117,25 +166,35 @@ export function filterHidden(
   root: TextSnapshotNode,
   includeHidden: boolean,
   hideUnevaluated = false,
+  visibilityEvaluated = false,
 ): TextSnapshotNode | undefined {
-  if (!includeHidden) {
-    if (root.visible === false || root.offscreen === true) {
-      return undefined;
-    }
-    if (
-      hideUnevaluated &&
-      root.visible !== true &&
-      root.backendNodeId === undefined
-    ) {
-      return undefined;
+  const children: TextSnapshotNode[] = [];
+  for (const child of root.children) {
+    const kept = filterHidden(
+      child,
+      includeHidden,
+      hideUnevaluated,
+      visibilityEvaluated,
+    );
+    if (kept !== undefined) {
+      children.push(kept);
     }
   }
 
-  const children: TextSnapshotNode[] = [];
-  for (const child of root.children) {
-    const kept = filterHidden(child, includeHidden, hideUnevaluated);
-    if (kept !== undefined) {
-      children.push(kept);
+  if (!includeHidden) {
+    if (isSelfVisibilityDropped(root, hideUnevaluated, visibilityEvaluated)) {
+      if (children.length === 0) {
+        return undefined;
+      }
+      if (children.length === 1) {
+        return children[0];
+      }
+      return {
+        uid: root.uid,
+        role: '__promoted__',
+        name: '',
+        children,
+      };
     }
   }
 

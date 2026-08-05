@@ -17,7 +17,11 @@ import type {
 import {dedupeTree, collapseSameNameChildren} from './dedupe.js';
 import {filterByInteraction} from './interaction.js';
 import {pruneTree} from './prune.js';
-import {applyVisibility, filterHidden} from './visibility.js';
+import {
+  applyVisibility,
+  filterHidden,
+  stampOptimisticDomVisibility,
+} from './visibility.js';
 
 /**
  * Formats a processed snapshot tree into the SPEC indented text representation.
@@ -115,7 +119,8 @@ export interface SmartSnapshotResult {
    * collapse folds same-name chains, so those uids vanish from `root` and a
    * later snapshot_diff would report spurious removed/added for them. Storing
    * the pre-dedupe tree as the diff baseline keeps every real node's uid
-   * stable across snapshots.
+   * stable across snapshots. Dedupe ×N and collapse [+] affect formatted output
+   * only; diff compares role/name/value/visible/offscreen on this baseline.
    */
   diffRoot: TextSnapshotNode;
   /** Formatted text for MCP response. */
@@ -131,9 +136,9 @@ export interface SmartSnapshotResult {
  * @param root - Normalized AX tree (uids already assigned).
  * @param options - Snapshot options (maxDepth, includeHidden, verbose).
  * @param visibilityInfo - Optional uid → geometry map; when provided, applied first.
- * @param hideUnevaluated - When true, nodes without evaluated visibility (and no
- *   backendNodeId) are dropped — used when browser skipped per-node collection
- *   on very large pages, so AX-only text/decoration nodes don't bloat the tree.
+ * @param hideUnevaluated - When true, nodes without evaluated visibility (visible
+ *   !== true) are dropped — used when browser skipped per-node collection on very
+ *   large pages. Real DOM nodes are stamped visible first; AX-only nodes are dropped.
  * @returns Processed root and formatted text.
  * @throws Never throws. Empty trees format to a minimal Document line.
  */
@@ -144,15 +149,20 @@ export function runSmartSnapshotPipeline(
   hideUnevaluated = false,
 ): SmartSnapshotResult {
   let tree = root;
+  const visibilityEvaluated =
+    visibilityInfo !== undefined && visibilityInfo.size > 0;
 
-  if (visibilityInfo !== undefined) {
+  if (visibilityEvaluated) {
     tree = applyVisibility(tree, visibilityInfo);
+  } else if (hideUnevaluated) {
+    tree = stampOptimisticDomVisibility(tree);
   }
 
   const afterVisibility = filterHidden(
     tree,
     options.includeHidden,
     hideUnevaluated,
+    visibilityEvaluated,
   );
   if (afterVisibility === undefined) {
     const empty: TextSnapshotNode = {

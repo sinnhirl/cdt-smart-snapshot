@@ -4,7 +4,13 @@
  */
 import {describe, expect, it} from 'vitest';
 
-import {assessVisibility, filterHidden} from '../src/core/visibility.js';
+import {
+  applyVisibility,
+  assessVisibility,
+  filterHidden,
+  stampOptimisticDomVisibility,
+} from '../src/core/visibility.js';
+import {runSmartSnapshotPipeline} from '../src/core/snapshot.js';
 import type {ElementVisibilityInfo, TextSnapshotNode} from '../src/types.js';
 
 /**
@@ -111,10 +117,7 @@ describe('filterHidden', () => {
     }
   });
 
-  it('shouldKeepUnevaluatedNodeWithBackendNodeIdWhenHideUnevaluated', () => {
-    // Large-page fast path: visibility skipped, so visible is undefined. A
-    // node with a real DOM handle (backendNodeId) paints and must survive;
-    // only AX-only nodes are dropped.
+  it('shouldKeepDomNodesOnLargePageSkipAfterOptimisticStamp', () => {
     const tree: TextSnapshotNode = {
       uid: 1,
       role: 'Document',
@@ -136,11 +139,112 @@ describe('filterHidden', () => {
         },
       ],
     };
-    const filtered = filterHidden(tree, false, true);
+    const stamped = stampOptimisticDomVisibility(tree);
+    const filtered = filterHidden(stamped, false, true);
     expect(filtered).toBeDefined();
     if (filtered !== undefined) {
       expect(filtered.children).toHaveLength(1);
       expect(filtered.children[0]?.uid).toBe(2);
     }
+  });
+
+  it('shouldDropUnevaluatedBackendNodeWhenHideUnevaluated', () => {
+    // Large-page mode without optimistic stamp: unevaluated DOM nodes are not
+    // assumed visible (hidden decoration with backendNodeId must not leak).
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'page',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'button',
+          name: 'Hidden shell',
+          backendNodeId: 100,
+          children: [],
+        },
+      ],
+    };
+    const filtered = filterHidden(tree, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      expect(filtered.children).toHaveLength(0);
+    }
+  });
+
+  it('shouldDropNodeMissingFromPartialVisibilityMapWhenHideUnevaluatedFalse', () => {
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'page',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'button',
+          name: 'Collected',
+          backendNodeId: 10,
+          children: [],
+        },
+        {
+          uid: 3,
+          role: 'button',
+          name: 'Failed collect',
+          backendNodeId: 11,
+          children: [],
+        },
+      ],
+    };
+    const infoByUid = new Map<number, ElementVisibilityInfo>([
+      [
+        2,
+        makeInfo({
+          display: 'block',
+        }),
+      ],
+    ]);
+    const withVis = applyVisibility(tree, infoByUid);
+    const filtered = filterHidden(withVis, false, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      expect(filtered.children).toHaveLength(1);
+      expect(filtered.children[0]?.uid).toBe(2);
+    }
+  });
+
+  it('shouldPromoteVisibleChildWhenParentIsHidden', () => {
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'page',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'generic',
+          name: 'Hidden menu shell',
+          visible: false,
+          offscreen: false,
+          children: [
+            {
+              uid: 3,
+              role: 'button',
+              name: 'Open menu',
+              visible: true,
+              offscreen: false,
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+    const options = {
+      maxDepth: 8,
+      includeHidden: false,
+      verbose: false,
+    } as const;
+    const result = runSmartSnapshotPipeline(tree, options);
+    expect(result.formatted).toContain('[button] "Open menu"');
   });
 });
