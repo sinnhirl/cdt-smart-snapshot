@@ -54,13 +54,21 @@ export class UidMapper {
    *
    * Why: AX-only nodes (text/static under a parent that has a DOM handle) have
    * no backendNodeId. Assigning a fresh uid each snapshot makes diff report
-   * spurious removed+added every round. Keying on (parentUid, role, name,
+   * spurious removed+added every round. Keying on (parentUid, role,
    * siblingIndex) is stable as long as the parent exists and the sibling order
    * is unchanged — exactly the nodes whose identity we can trust positionally.
    *
+   * IMPORTANT: the key deliberately excludes the node's name/text. Text
+   * content changes are the most common diff event on dynamic pages ("3
+   * unread" → "4 unread"); including name in the identity would turn every
+   * content change into a spurious removed+added pair. Identity must stay
+   * stable across content changes so diff can report "~ changed" instead.
+   * It also keeps byLogicalPath from accumulating one entry per historical
+   * text value (a long-session memory leak).
+   *
    * @param parentUid - Uid of the parent node (root has 0).
    * @param role - AX role.
-   * @param name - Accessible name.
+   * @param name - Accessible name (informational only, NOT part of the key).
    * @param siblingIndex - 0-based index among the parent's AX children.
    * @returns Positive integer uid.
    * @throws Never throws.
@@ -71,7 +79,7 @@ export class UidMapper {
     name: string,
     siblingIndex: number,
   ): number {
-    const key = `${parentUid}|${role}|${name}|${siblingIndex}`;
+    const key = `${parentUid}|${role}|${siblingIndex}`;
     const existing = this.byLogicalPath.get(key);
     if (existing !== undefined) {
       return existing;

@@ -9,6 +9,7 @@
 import {z} from 'zod';
 
 import {fetchAxTreeWithVisibility, getActivePage} from '../browser.js';
+import {loadConfig} from '../config.js';
 import {normalizeAxTree} from '../core/ax-tree.js';
 import {runSnapshotDiff} from '../core/diff.js';
 import {runSmartSnapshotPipeline} from '../core/snapshot.js';
@@ -29,8 +30,8 @@ export const snapshotDiffArgsSchema = z.object({
     .int()
     .min(1)
     .max(20)
-    .default(8)
-    .describe('Same as smart_snapshot.'),
+    .optional()
+    .describe('Same as smart_snapshot (falls back to CDT_MAX_DEPTH).'),
   includeHidden: z.boolean().default(false).describe('Same as smart_snapshot.'),
 });
 
@@ -70,8 +71,9 @@ export async function handleSnapshotDiff(
 ): Promise<ToolTextResult> {
   try {
     const parsed = snapshotDiffArgsSchema.parse(args ?? {});
+    const config = loadConfig();
     const options: SnapshotOptions = {
-      maxDepth: parsed.maxDepth,
+      maxDepth: parsed.maxDepth ?? config.defaultMaxDepth,
       includeHidden: parsed.includeHidden,
       verbose: false,
     };

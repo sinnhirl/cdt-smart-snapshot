@@ -34,15 +34,28 @@ describe('uid', () => {
     expect(second).toBe(first);
   });
 
+  it('shouldKeepUidStableWhenTextContentChanges', () => {
+    const mapper = new UidMapper();
+    // Same logical position, text changes "3 unread" → "4 unread" (the most
+    // common dynamic-page diff event). Identity must NOT depend on text:
+    // otherwise every content change reports a spurious removed+added pair.
+    const first = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
+    const second = mapper.getUidForLogicalPath(7, 'text', '4 unread', 2);
+    expect(second).toBe(first);
+  });
+
   it('shouldDistinguishDifferentLogicalPaths', () => {
     const mapper = new UidMapper();
+    // Position (parentUid, role, siblingIndex) is the identity — text is not.
     const a = mapper.getUidForLogicalPath(7, 'text', '3 unread', 2);
     const b = mapper.getUidForLogicalPath(7, 'text', '4 unread', 2);
     const c = mapper.getUidForLogicalPath(8, 'text', '3 unread', 2);
     const d = mapper.getUidForLogicalPath(7, 'text', '3 unread', 3);
-    expect(a).not.toBe(b);
-    expect(a).not.toBe(c);
-    expect(a).not.toBe(d);
+    const e = mapper.getUidForLogicalPath(7, 'link', '3 unread', 2);
+    expect(b).toBe(a); // same position, different text → same uid (by design)
+    expect(c).not.toBe(a);
+    expect(d).not.toBe(a);
+    expect(e).not.toBe(a);
   });
 
   it('shouldResetClearsMappingsSoUidsRestart', () => {
