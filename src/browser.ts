@@ -339,6 +339,27 @@ async function walkAxForVisibility(
       if (handle !== null) {
         try {
           const geo: EvaluatedGeometry = await handle.evaluate(el => {
+            // RootWebArea's elementHandle resolves to the HTMLDocument
+            // (nodeType 9). getComputedStyle/getBoundingClientRect throw on
+            // documents, and documentElement reports a zero-height rect in
+            // CDP pages. The root is the page container — it is by definition
+            // visible (there is no 'hidden document'), so return a visible
+            // full-viewport geometry instead of measuring.
+            if (el instanceof Document) {
+              return {
+                display: 'block',
+                visibility: 'visible',
+                opacity: 1,
+                top: 0,
+                left: 0,
+                bottom: window.innerHeight,
+                right: window.innerWidth,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                viewportWidth: window.innerWidth,
+                viewportHeight: window.innerHeight,
+              };
+            }
             const style = window.getComputedStyle(el);
             const rect = el.getBoundingClientRect();
             return {

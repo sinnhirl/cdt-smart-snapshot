@@ -117,6 +117,36 @@ describe('filterHidden', () => {
     }
   });
 
+  it('shouldKeepRootLineWhenRootVisibleAndVisibilityEvaluated', () => {
+    // R3A regression: the page root (RootWebArea) was dropped when the
+    // visibility map didn't include it (document handle threw on geometry
+    // evaluation), so filterHidden replaced it with __promoted__ and the
+    // page-title line vanished from every snapshot. A visible root must
+    // survive even when visibilityEvaluated is true.
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'RootWebArea',
+      name: 'DeepSeek 开放平台',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'menuitem',
+          name: '用量信息',
+          visible: true,
+          children: [],
+        },
+      ],
+    };
+    const filtered = filterHidden(tree, false, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      expect(filtered.role).toBe('RootWebArea');
+      expect(filtered.name).toBe('DeepSeek 开放平台');
+      expect(filtered.children).toHaveLength(1);
+    }
+  });
+
   it('shouldKeepDomNodesOnLargePageSkipAfterOptimisticStamp', () => {
     const tree: TextSnapshotNode = {
       uid: 1,
