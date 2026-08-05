@@ -9,12 +9,16 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "eslint --fix . && prettier --write .",
     "check-format": "eslint . && prettier --check .",
     "start": "node build/src/index.js"
+  },
+  "bin": {
+    "cdt-smart-snapshot": "build/src/index.js"
   },
   "keywords": [
     "mcp",
