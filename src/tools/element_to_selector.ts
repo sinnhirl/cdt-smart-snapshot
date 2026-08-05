@@ -73,7 +73,7 @@ export async function handleElementToSelector(
 
     if (entry.backendNodeId === undefined) {
       return errorResult(
-        `Could not resolve uid ${String(parsed.uid)} to a DOM element. The page may have navigated; call smart_snapshot again.`,
+        `uid ${String(parsed.uid)} has no DOM backend node (AX-only node); a CSS selector cannot be generated. Use page_search to find an interactive element that maps to DOM.`,
       );
     }
 

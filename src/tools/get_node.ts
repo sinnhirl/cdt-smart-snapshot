@@ -79,13 +79,13 @@ export async function handleGetNode(
     ];
 
     if (entry.backendNodeId === undefined) {
-      lines.push('domState: unavailable');
+      lines.push('domState: unavailable (AX-only node, no DOM mapping)');
       return textResult(lines.join('\n'));
     }
 
     const dom = await queryDomByBackendNodeId(page, entry.backendNodeId);
     if (dom === undefined) {
-      lines.push('domState: unavailable');
+      lines.push('domState: unavailable (DOM lookup failed)');
       return textResult(lines.join('\n'));
     }
 
