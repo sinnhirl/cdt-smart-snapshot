@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.4...v0.1.5) (2026-08-05)
+
+
+### Bug Fixes
+
+* only stamp interactive roles visible on large-page skip (ROUND3-1) ([673ca54](https://github.com/sinnhirl/cdt-smart-snapshot/commit/673ca546f2b3f09fdb0c88a41900198f4d71a2bd))
+
 ## [0.1.4](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.3...v0.1.4) (2026-08-05)
 
 
