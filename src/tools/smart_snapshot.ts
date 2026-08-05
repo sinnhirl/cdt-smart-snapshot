@@ -27,6 +27,7 @@ import {
   type ToolDefinition,
 } from './helpers.js';
 import {runExclusiveSnapshotTool} from './snapshot-serial.js';
+import {refreshSnapshotUidIndex} from './snapshot-uid-cache.js';
 
 /** Zod schema for smart_snapshot arguments. */
 export const smartSnapshotArgsSchema = z.object({
@@ -105,7 +106,7 @@ export async function handleSmartSnapshot(
         verbose: parsed.verbose,
       };
 
-      const {page} = await getActivePage();
+      const {page, url} = await getActivePage();
       const {raw, visibilityByBackendId, visibilitySkipped} =
         await fetchAxTreeWithVisibility(page);
       const normalized = normalizeAxTree(raw, defaultUidMapper);
@@ -123,6 +124,7 @@ export async function handleSmartSnapshot(
       // Keep diff baseline in sync when agents use smart_snapshot as the first look.
       // Use the pre-dedupe/collapse tree so merged/folded uids stay identifiable.
       storeSnapshot(result.diffRoot, result.formatted);
+      refreshSnapshotUidIndex(result.diffRoot, url);
       return textResult(result.formatted);
     } catch (err) {
       const last = getLastConnectError();

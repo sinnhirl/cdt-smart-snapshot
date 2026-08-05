@@ -48,10 +48,45 @@ function defaultMockVisibilityMap(): Map<number, ElementVisibilityInfo> {
   return map;
 }
 
+/**
+ * Default AX tree shared by most tool tests: a Compose button and an Inbox
+ * link under a RootWebArea. Extracted so beforeEach can reset mockState.raw
+ * after tests that mutate it (order-independent tests).
+ *
+ * @returns Fresh RawAxNode tree.
+ */
+function defaultMockRawTree(): RawAxNode {
+  return {
+    role: 'RootWebArea',
+    name: 'example.com',
+    backendDOMNodeId: 1,
+    children: [
+      {
+        role: 'button',
+        name: 'Compose',
+        backendDOMNodeId: 12,
+        children: [],
+      },
+      {
+        role: 'link',
+        name: 'Inbox',
+        backendDOMNodeId: 15,
+        children: [],
+      },
+    ],
+  };
+}
+
 const {
   getActivePage,
   fetchAxTreeWithVisibility,
   takeScreenshotToPath,
+  queryDomByBackendNodeId,
+  elementToSelector,
+  readPageLifecycle,
+  getPageDiagnostics,
+  clearPageDiagnostics,
+  attachPageDiagnostics,
   mockState,
 } = vi.hoisted(() => {
   const mockState: {
@@ -61,25 +96,7 @@ const {
     screenshotPathWritten: string;
   } = {
     hasPage: true,
-    raw: {
-      role: 'RootWebArea',
-      name: 'example.com',
-      backendDOMNodeId: 1,
-      children: [
-        {
-          role: 'button',
-          name: 'Compose',
-          backendDOMNodeId: 12,
-          children: [],
-        },
-        {
-          role: 'link',
-          name: 'Inbox',
-          backendDOMNodeId: 15,
-          children: [],
-        },
-      ],
-    },
+    raw: defaultMockRawTree(),
     visibilityByBackendId: defaultMockVisibilityMap(),
     screenshotPathWritten: '',
   };
@@ -119,6 +136,41 @@ const {
         return filePath;
       },
     ),
+    queryDomByBackendNodeId: vi.fn(
+      async (): Promise<{
+        tagName: string;
+        cssSelector: string;
+        visible: boolean;
+        disabled: boolean;
+        rect: {top: number; left: number; width: number; height: number};
+      } | undefined> => ({
+        tagName: 'button',
+        cssSelector: '[data-testid="compose"]',
+        visible: true,
+        disabled: false,
+        rect: {top: 1, left: 2, width: 80, height: 32},
+      }),
+    ),
+    elementToSelector: vi.fn(async () => '[data-testid="compose"]'),
+    readPageLifecycle: vi.fn(async () => ({
+      url: 'https://example.com',
+      title: 'Example',
+      readyState: 'complete',
+      loading: false,
+    })),
+    getPageDiagnostics: vi.fn(() => ({
+      consoleErrors: [
+        {
+          message: 'Failed to load resource: 404',
+          level: 'error' as const,
+          timestampMs: Date.now() - 120_000,
+        },
+      ],
+      pageExceptions: [],
+      failedRequests: [],
+    })),
+    clearPageDiagnostics: vi.fn(),
+    attachPageDiagnostics: vi.fn(),
   };
 });
 
@@ -126,6 +178,12 @@ vi.mock('../src/browser.js', () => ({
   getActivePage,
   fetchAxTreeWithVisibility,
   takeScreenshotToPath,
+  queryDomByBackendNodeId,
+  elementToSelector,
+  readPageLifecycle,
+  getPageDiagnostics,
+  clearPageDiagnostics,
+  attachPageDiagnostics,
   connectBrowser: vi.fn(),
   disconnectBrowser: vi.fn(),
   fetchAxTree: vi.fn(),
@@ -136,20 +194,33 @@ vi.mock('../src/browser.js', () => ({
 import {resetDiffHistory} from '../src/core/diff.js';
 import {defaultUidMapper} from '../src/core/uid.js';
 import {readPackageVersion} from '../src/version.js';
+import {handleElementToSelector} from '../src/tools/element_to_selector.js';
+import {handleGetNode} from '../src/tools/get_node.js';
+import {handlePageSearch} from '../src/tools/page_search.js';
+import {handlePageStatus} from '../src/tools/page_status.js';
 import {handleScreenshotToDisk} from '../src/tools/screenshot_to_disk.js';
 import {handleSmartSnapshot} from '../src/tools/smart_snapshot.js';
 import {handleSnapshotDiff} from '../src/tools/snapshot_diff.js';
+import {clearSnapshotUidCache} from '../src/tools/snapshot-uid-cache.js';
 import {getLastConnectError} from '../src/browser.js';
 
 describe('tools', () => {
   beforeEach(() => {
     resetDiffHistory();
+    clearSnapshotUidCache();
     defaultUidMapper.reset();
     mockState.hasPage = true;
+    mockState.raw = defaultMockRawTree();
     mockState.visibilityByBackendId = defaultMockVisibilityMap();
     getActivePage.mockClear();
     fetchAxTreeWithVisibility.mockClear();
     takeScreenshotToPath.mockClear();
+    queryDomByBackendNodeId.mockClear();
+    elementToSelector.mockClear();
+    readPageLifecycle.mockClear();
+    getPageDiagnostics.mockClear();
+    clearPageDiagnostics.mockClear();
+    attachPageDiagnostics.mockClear();
     vi.mocked(getLastConnectError).mockReturnValue(undefined);
   });
 
@@ -392,5 +463,132 @@ describe('tools', () => {
       vi.unstubAllEnvs();
       await rm(dir, {recursive: true, force: true});
     }
+  });
+
+  it('pageSearchShouldErrorWhenIndexEmpty', async () => {
+    const result = await handlePageSearch({keyword: 'Compose'});
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('No snapshot yet');
+  });
+
+  it('pageSearchShouldReturnMatchesAfterSnapshot', async () => {
+    await handleSmartSnapshot({});
+    const result = await handlePageSearch({keyword: 'compose'});
+    expect(result.isError).toBeUndefined();
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('Found');
+    expect(text).toContain('uid=');
+    expect(text).toContain('Compose');
+  });
+
+  it('pageSearchShouldReportNoMatchesWhenKeywordMissing', async () => {
+    await handleSmartSnapshot({});
+    const result = await handlePageSearch({keyword: 'zzznomatch'});
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('No matches');
+  });
+
+  it('pageSearchShouldTruncateWithMoreLineWhenMaxResultsExceeded', async () => {
+    const vis = defaultVisibleInfo();
+    const children: RawAxNode[] = [];
+    for (let i = 0; i < 10; i++) {
+      children.push({
+        role: 'link',
+        name: `search item ${String(i)}`,
+        backendDOMNodeId: 100 + i,
+        children: [],
+      });
+    }
+    mockState.raw = {
+      role: 'RootWebArea',
+      name: 'example.com',
+      backendDOMNodeId: 1,
+      children,
+    };
+    const visMap = new Map<number, ElementVisibilityInfo>();
+    visMap.set(1, vis);
+    for (let i = 0; i < 10; i++) {
+      visMap.set(100 + i, vis);
+    }
+    mockState.visibilityByBackendId = visMap;
+    try {
+      await handleSmartSnapshot({});
+      const result = await handlePageSearch({keyword: 'search', maxResults: 3});
+      const text = result.content[0]?.text ?? '';
+      expect(text).toContain('... and');
+    } finally {
+      mockState.raw = {
+        role: 'RootWebArea',
+        name: 'example.com',
+        backendDOMNodeId: 1,
+        children: [
+          {
+            role: 'button',
+            name: 'Compose',
+            backendDOMNodeId: 12,
+            children: [],
+          },
+          {
+            role: 'link',
+            name: 'Inbox',
+            backendDOMNodeId: 15,
+            children: [],
+          },
+        ],
+      };
+      mockState.visibilityByBackendId = defaultMockVisibilityMap();
+    }
+  });
+
+  it('getNodeShouldReturnDetailsWhenUidFound', async () => {
+    await handleSmartSnapshot({});
+    const result = await handleGetNode({uid: 2});
+    expect(result.isError).toBeUndefined();
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('uid=2');
+    expect(text).toContain('cssSelector:');
+  });
+
+  it('getNodeShouldErrorWhenUidNotInIndex', async () => {
+    await handleSmartSnapshot({});
+    const result = await handleGetNode({uid: 99999});
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('not found');
+  });
+
+  it('getNodeShouldDegradeWhenDomStateUnavailable', async () => {
+    await handleSmartSnapshot({});
+    queryDomByBackendNodeId.mockResolvedValueOnce(undefined);
+    const result = await handleGetNode({uid: 2});
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0]?.text).toContain('domState: unavailable');
+  });
+
+  it('elementToSelectorShouldReturnSelectorWhenUidFound', async () => {
+    await handleSmartSnapshot({});
+    const result = await handleElementToSelector({uid: 2});
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0]?.text).toBe('[data-testid="compose"]');
+  });
+
+  it('elementToSelectorShouldErrorWhenUidMissing', async () => {
+    await handleSmartSnapshot({});
+    const result = await handleElementToSelector({uid: 888});
+    expect(result.isError).toBe(true);
+  });
+
+  it('pageStatusShouldReturnLifecycleAndDiagnostics', async () => {
+    const result = await handlePageStatus({});
+    expect(result.isError).toBeUndefined();
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('URL: https://example.com');
+    expect(text).toContain('readyState: complete');
+    expect(text).toContain('Console errors');
+    expect(text).toContain('404');
+  });
+
+  it('pageStatusShouldClearDiagnosticsWhenClearTrue', async () => {
+    await handlePageStatus({clear: true});
+    expect(clearPageDiagnostics).toHaveBeenCalled();
   });
 });

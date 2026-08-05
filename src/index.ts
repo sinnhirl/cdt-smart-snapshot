@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 /**
- * MCP server entry: registers smart_snapshot, snapshot_diff, screenshot_to_disk.
+ * MCP server entry: registers snapshot, query, and status tools.
  */
 
 import {realpathSync} from 'node:fs';
@@ -17,9 +17,20 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import {
+  handleElementToSelector,
+  elementToSelectorDefinition,
+} from './tools/element_to_selector.js';
+import {handleGetNode, getNodeDefinition} from './tools/get_node.js';
+import {handlePageSearch, pageSearchDefinition} from './tools/page_search.js';
+import {handlePageStatus, pageStatusDefinition} from './tools/page_status.js';
+import {
   handleScreenshotToDisk,
   screenshotToDiskDefinition,
 } from './tools/screenshot_to_disk.js';
+import {
+  handleSnapshotIndex,
+  snapshotIndexDefinition,
+} from './tools/snapshot_index.js';
 import {
   handleSmartSnapshot,
   smartSnapshotDefinition,
@@ -36,6 +47,11 @@ const TOOLS = [
   smartSnapshotDefinition,
   snapshotDiffDefinition,
   screenshotToDiskDefinition,
+  pageSearchDefinition,
+  getNodeDefinition,
+  elementToSelectorDefinition,
+  pageStatusDefinition,
+  snapshotIndexDefinition,
 ];
 
 /**
@@ -55,7 +71,7 @@ function toCallToolResult(result: ToolTextResult): CallToolResult {
 }
 
 /**
- * Creates and configures the MCP Server with the three snapshot tools.
+ * Creates and configures the MCP Server with snapshot and query tools.
  *
  * @returns Configured Server instance (not yet connected to a transport).
  * @throws Never throws during construction.
@@ -83,6 +99,16 @@ export function createServer(): Server {
       result = await handleSnapshotDiff(safeArgs);
     } else if (name === 'screenshot_to_disk') {
       result = await handleScreenshotToDisk(safeArgs);
+    } else if (name === 'page_search') {
+      result = await handlePageSearch(safeArgs);
+    } else if (name === 'get_node') {
+      result = await handleGetNode(safeArgs);
+    } else if (name === 'element_to_selector') {
+      result = await handleElementToSelector(safeArgs);
+    } else if (name === 'page_status') {
+      result = await handlePageStatus(safeArgs);
+    } else if (name === 'snapshot_index') {
+      result = await handleSnapshotIndex(safeArgs);
     } else {
       result = {
         content: [{type: 'text', text: `Unknown tool: ${name}`}],

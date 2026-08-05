@@ -27,6 +27,7 @@ import {
   type ToolDefinition,
 } from './helpers.js';
 import {runExclusiveSnapshotTool} from './snapshot-serial.js';
+import {refreshSnapshotUidIndex} from './snapshot-uid-cache.js';
 
 /** Zod schema for snapshot_diff arguments. */
 export const snapshotDiffArgsSchema = z.object({
@@ -93,7 +94,7 @@ export async function handleSnapshotDiff(
         verbose: parsed.verbose,
       };
 
-      const {page} = await getActivePage();
+      const {page, url} = await getActivePage();
       const {raw, visibilityByBackendId, visibilitySkipped} =
         await fetchAxTreeWithVisibility(page);
       const normalized = normalizeAxTree(raw, defaultUidMapper);
@@ -110,6 +111,7 @@ export async function handleSnapshotDiff(
       // Diff against the pre-dedupe/collapse tree (see diffRoot doc): merged and
       // folded uids remain stable across snapshots, avoiding spurious ± entries.
       const text = runSnapshotDiff(result.diffRoot, result.formatted);
+      refreshSnapshotUidIndex(result.diffRoot, url);
       return textResult(text);
     } catch (err) {
       const last = getLastConnectError();
