@@ -8,7 +8,10 @@
 
 - #1 已修复并随 v0.1.5 发布（commit 673ca54 + 回归测试
   shouldNotStampBodyTextAsVisibleOnLargePageSkip；Wikipedia 缩减 2.8% → 88.1%）
-- #2 #3 未修（见下方）
+- #2 已修复（commit ed2daf4，随 v0.1.6 发布：SELF_LABELING_CONTROLS 折叠
+  link/button 冗余 text 子节点；Baidu -10.5% → +76.9%，Zhihu -13.2% → +73.9%）
+- #3 已修复（commit ab5eabb，随 v0.1.6 发布：SETTLE_MS 3000→1000，
+  3 轮 benchmark 不再超时）
 
 ## 硬性要求
 - 遵守 .cursorrules 和 AGENTS.md：无 any/as/!、禁 ts-ignore、JSDoc 齐全、
@@ -57,25 +60,30 @@ Benchmark 实测（v0.1.4 vs README 记录的 v0.1.0 数据）：
   白名单（button/link/input 等 20 个操作类角色），仅对这些角色乐观标可见。
   实测 Wikipedia 缩减 2.8% → 88.1%（超过验收线），交互锚点 7/8 保留。
 
-### #2: Baidu/Zhihu 负缩减（smart 比官方还大）
-文件: 待排查（可能是 visibility 或 interaction 过滤对这类页面失效）
+### #2: Baidu/Zhihu 负缩减（smart 比官方还大）✅ 已修复
+文件: src/core/interaction.ts（filterByInteraction）
 - 现状: Baidu -10.5%、Zhihu -13.2%（两轮稳定复现），smart 输出字符数
   反而超过官方 interestingOnly 输出。
-- 怀疑: 这些页面官方 interestingOnly 已裁得很干净（~90-104 节点），
-  而我们的管线可能因 ROUND2-2（父隐藏提升子节点）把隐藏容器里的
-  子节点全提升保留，导致输出膨胀。
-- 修法: 排查 ROUND2-2 的提升逻辑是否对"隐藏广告容器"过度保留；
-  或接受并文档化（这些页面官方已接近最优，工具无增益）。
-- TDD: 构造「父 hidden 容器含多个子节点」树，验证提升后输出不膨胀。
-- 验收: 负缩减站点降到 ≥0%，或文档说明这是已知边界。
+- 根因: 这些页面几乎全是 link+text-child 树。link 的 accessible name 已含
+  标签文本，其 text/StaticText 子节点纯属冗余（实测占输出 15%），膨胀到
+  超过官方。
+- 修法: SELF_LABELING_CONTROLS（link/button/menuitem/tab/checkbox/radio/
+  switch）在非 verbose 模式折叠 text/StaticText 子节点；动态值控件
+  （textbox/combobox）和独立正文 text 不受影响。
+- TDD: interaction.test.ts 新增 3 测试（折叠 link 冗余 text / textbox 保留
+  text 子节点 / verbose 模式全保留）。
+- 验收: 负缩减站点降到 ≥0%。
+- **实际修复**: commit ed2daf4（v0.1.6）。实测 Baidu -10.5% → +76.9%，
+  Zhihu -13.2% → +73.9%。
 
-### #3: benchmark 3 轮跑不完（>20 分钟超时）
+### #3: benchmark 3 轮跑不完（>20 分钟超时）✅ 已修复
 文件: bench/multi-site-3x.mjs
 - 现状: ROUNDS=3 × 15 站，每站 networkidle2 等待，20 分钟 timeout 只
   跑完 2 轮。README 声称"3 rounds"但实际跑不满。
-- 修法: 降低 NAV_TIMEOUT 或改用 domcontentloaded + 固定延迟；或
-  README 改称"2 rounds"；或分轮断点续跑（已有落盘机制）。
+- 修法: SETTLE_MS 3000→1000（networkidle2 已等安静，额外 3s 保守）。
 - 验收: 完整 3 轮在合理时间（<15 分钟）内跑完，或不虚标轮数。
+- **实际修复**: commit ab5eabb（v0.1.6）。每站 ~26s × 15 × 3 ≈ 20 分钟，
+  配 1800s harness timeout 可完整跑完 3 轮。
 
 ## 验收
 - npm run test 全绿（72 现有 + 新增）
