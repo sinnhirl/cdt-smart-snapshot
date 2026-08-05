@@ -111,8 +111,11 @@ Differentiation (verified community gaps, 2026-08):
 - **schema**:
   ```ts
   {
-    maxDepth: z.number().int().min(1).max(20).default(8).describe('Same as smart_snapshot.'),
+    maxDepth: z.number().int().min(1).max(20).optional()
+      .describe('Same as smart_snapshot (falls back to CDT_MAX_DEPTH).'),
     includeHidden: z.boolean().default(false).describe('Same as smart_snapshot.'),
+    verbose: z.boolean().default(false)
+      .describe('Same as smart_snapshot (include container/static nodes too).'),
   }
   ```
 - **behavior**:
@@ -149,6 +152,8 @@ Differentiation (verified community gaps, 2026-08):
   ```
 - **return**: `Screenshot saved to: /tmp/cdt-snapshots/20260804_0930_12ab.png` (single text line)
 - **naming**: `YYYYMMDD_HHMMSS_<6-hex>.<ext>`; directory auto-created.
+- **security**: `directory` is resolved and must stay under the configured
+  `CDT_SNAPSHOT_DIR` root; paths escaping it (`../../etc`) are rejected.
 
 ## 5. Core algorithms
 
@@ -158,6 +163,13 @@ Differentiation (verified community gaps, 2026-08):
 - Normalize to `TextSnapshotNode { uid, role, name, value?, backendNodeId?, children, visible? }`
 - AX node props: `role`, `name`, `value`, `backendNodeId`, `children`, `ignored`
 - Note: `interestingOnly: true` already drops some ignored nodes; remaining nodes still processed
+- Identity: nodes with a backendNodeId get a stable uid from `UidMapper`; AX-only
+  nodes (no DOM handle) get a logical-path uid keyed by `(parentUid, role, siblingIndex)`
+  — deliberately excluding name so text changes diff as `~ changed`, not remove+add.
+  Known limitation (documented): inserting an earlier sibling shifts siblingIndex and
+  can cascade spurious remove+add for following AX-only nodes; backendNodeId nodes unaffected.
+- The mapper grows monotonically for process lifetime (stable diff identity is the
+  design goal); reset() exists for tests only.
 
 ### 5.2 Visibility filter (visibility.ts)
 
@@ -166,6 +178,9 @@ Per node (batch DOM geometry via page.evaluate):
 - `display:none` / `visibility:hidden` / `opacity:0` (inherited from ancestors) → hidden
 - `getBoundingClientRect()`: width/height 0 → hidden
 - Viewport test: `rect.top > innerHeight || rect.bottom < 0` etc. → offscreen (dropped by default; kept when includeHidden=true, marked)
+- Nodes missing from the geometry map are **not** assumed visible (never stamped visible on partial data); when a non-empty map was applied, unevaluated nodes are dropped
+- When a parent is hidden, surviving visible descendants are **promoted** to the nearest kept ancestor (single child inlined; multiple wrapped in a `__promoted__` node that formatters flatten) — hidden shells with independently visible controls no longer lose them
+- Large pages (node count > `VISIBILITY_MAX_NODES`): per-node collection is skipped; `stampOptimisticDomVisibility` marks nodes with a backendNodeId as visible so real DOM nodes survive while AX-only decoration is dropped (`hideUnevaluated` semantics, V1 behavior preserved)
 - Returns {visible, offscreen} binary state for filtering/marking
 
 ### 5.3 Interaction filter (interaction.ts)
@@ -202,16 +217,20 @@ when unnamed, emit when named.
 Input: prevSnapshot (with uid→node map), currSnapshot
 
 ```
-BFS over curr:
-  uid in prev and attrs identical (role/name/value/visible) → skip
+Sibling-list merge in DOM order (two-pointer over prev/curr children):
+  uid in prev and attrs identical (role/name/value/visible/offscreen) → skip
   uid in prev but attrs differ → ~ changed (list changed fields)
+  uid not in curr → - removed (interleaved at the parent's sibling position)
   uid not in prev → + added
-BFS over prev:
-  uid not in curr → - removed
+Recurse into surviving children pairs; trailing prev siblings are removals.
 ```
 
-Output in DOM order; adds/changes follow curr order, removals interleaved at parent position.
-"Identical" = role, name, value, visible all equal.
+Adds/changes/removals all follow DOM order; removals are interleaved at their
+parent's position (SPEC §5.6), not batched after adds.
+
+"Identical" = role, name, value, visible, offscreen all equal.
+Dedupe display fields (count/collapsed/childCount) are **not** compared — the diff
+baseline is the pre-dedupe tree, so those fields are always undefined there.
 Context: parent line (role/name) + direct diff lines (±2 indent levels).
 
 ## 6. Engineering standards (mirror official chrome-devtools-mcp)
@@ -424,6 +443,6 @@ tests/tools.test.ts (mock page, no live browser):
 
 ## 10. Later stages (not in this MVP)
 
-- Stage 5: live-environment benchmark (Edge 9222, 30-step mail session token comparison, fill README table)
-- Stage 6: npm publish + GitHub repo (Apache-2.0) + LICENSE
+- Stage 5: live-environment benchmark (Edge 9222, 30-step mail session token comparison, fill README table) — done 2026-08-04 (15 sites × 3 rounds, see README)
+- ~~Stage 6: npm publish + GitHub repo (Apache-2.0) + LICENSE~~ — done 2026-08-05 (v0.1.3 on npm; release-please + npm-publish automation in CI)
 - Stage 7 (far future): take benchmark data to official issue #1966 proposal

@@ -1,5 +1,8 @@
 # cdt-smart-snapshot
 
+[![npm version](https://img.shields.io/npm/v/cdt-smart-snapshot.svg)](https://www.npmjs.com/package/cdt-smart-snapshot)
+[![License](https://img.shields.io/github/license/sinnhirl/cdt-smart-snapshot.svg)](https://github.com/sinnhirl/cdt-smart-snapshot/blob/main/LICENSE)
+
 Token-efficient snapshot MCP server for Chrome DevTools Protocol.
 
 Use alongside official [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp):
@@ -8,7 +11,18 @@ operations (click / fill / navigate) stay on the official server; page perceptio
 
 ## Install
 
+**npm (recommended):**
+
 ```bash
+npm install -g cdt-smart-snapshot
+# or run without installing: npx cdt-smart-snapshot
+```
+
+**From source (developers):**
+
+```bash
+git clone https://github.com/sinnhirl/cdt-smart-snapshot
+cd cdt-smart-snapshot
 npm install
 npm run build
 ```
@@ -19,6 +33,24 @@ with remote debugging (Edge/Chrome on port `9222`, or `9223` via portproxy).
 ## MCP configuration
 
 ### Claude Code / Claude Desktop
+
+**npm install (recommended):**
+
+```json
+{
+  "mcpServers": {
+    "cdt-smart-snapshot": {
+      "command": "cdt-smart-snapshot",
+      "env": {
+        "CDT_BROWSER_URL": "http://127.0.0.1:9222",
+        "CDT_SNAPSHOT_DIR": "/tmp/cdt-snapshots"
+      }
+    }
+  }
+}
+```
+
+**From source:**
 
 ```json
 {
@@ -37,7 +69,16 @@ with remote debugging (Edge/Chrome on port `9222`, or `9223` via portproxy).
 
 ### Hermes
 
-Point Hermes at the same `node …/build/src/index.js` entry with the env vars above.
+```yaml
+mcp_servers:
+  cdt-smart-snapshot:
+    command: cdt-smart-snapshot # or: node + build/src/index.js from source
+    env:
+      CDT_BROWSER_URL: http://127.0.0.1:9222
+      CDT_SNAPSHOT_DIR: /tmp/cdt-snapshots
+    timeout: 300
+```
+
 Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
 
 ## Tools
@@ -106,8 +147,7 @@ Combined with snapshot_diff, a 30-step agent session on an interactive page
 consumes roughly 15–20% of the tokens of repeated full take_snapshot calls.
 
 Reproduce: `node bench/multi-site-3x.mjs` (requires Edge debugging mode on 9222
-
-- portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
+→ portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
 
 ## Development
 
