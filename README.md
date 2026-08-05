@@ -74,12 +74,74 @@ mcp_servers:
   cdt-smart-snapshot:
     command: cdt-smart-snapshot # or: node + build/src/index.js from source
     env:
-      CDT_BROWSER_URL: http://127.0.0.1:9222
+      CDT_BROWSER_URL: http://127.0.0.1:9222 # default when browser is local; WSL2: see "Connecting to a browser"
       CDT_SNAPSHOT_DIR: /tmp/cdt-snapshots
     timeout: 300
 ```
 
 Prefer `CDT_WS_ENDPOINT` when you already have a WebSocket debugger URL.
+
+## Connecting to a browser
+
+This server does **not** launch a browser. It connects to a Chromium-based
+browser that is already running with remote debugging enabled. What to put in
+`CDT_BROWSER_URL` depends on where that browser runs relative to this server.
+
+### 1. Start a browser with remote debugging
+
+Pick a browser you already have installed (Edge / Chrome / Chromium):
+
+```bash
+# macOS / Linux
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port=9222 --user-data-dir=/tmp/cdt-profile &
+
+# Windows (PowerShell)
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 --user-data-dir=C:\temp\cdt-profile
+```
+
+> `--user-data-dir` uses a fresh profile so the debugging instance does not
+> clash with your normal browser session. Log into sites inside this window;
+> the server sees that logged-in session.
+
+### 2. Decide what `CDT_BROWSER_URL` to use
+
+| Where the MCP server runs                                    | `CDT_BROWSER_URL`                  | Notes                                          |
+| ------------------------------------------------------------ | ---------------------------------- | ---------------------------------------------- |
+| Same machine as the browser (macOS / Linux / Windows native) | `http://127.0.0.1:9222`            | Default. Nothing to change.                    |
+| WSL2 (browser runs on Windows)                               | `http://<windows-host-ip>:9223`    | Needs the portproxy bridge (below).            |
+| Docker container (browser on host)                           | `http://host.docker.internal:9222` | Docker Desktop exposes the host automatically. |
+
+The default `http://127.0.0.1:9222` covers the common case; only change it if
+the browser is somewhere else.
+
+### 3. WSL2: the portproxy bridge (browser on Windows)
+
+Chromium's debugging port binds `127.0.0.1` **inside Windows**. WSL2 is a
+separate VM — its own `127.0.0.1` is not Windows', so it cannot reach the
+port directly. The standard fix is a `netsh portproxy` that listens on all
+interfaces on `9223` and forwards to Windows' `127.0.0.1:9222`:
+
+```powershell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=9223 \
+  connectaddress=127.0.0.1 connectport=9222
+```
+
+Then find the Windows host IP from WSL and verify:
+
+```bash
+# From WSL — print the Windows host IP (gateway of the default route)
+ip route show default | awk '{print $3}'
+# e.g. 172.27.64.1  →  CDT_BROWSER_URL=http://172.27.64.1:9223
+
+# Verify the bridge works
+curl -s http://<windows-host-ip>:9223/json/version
+```
+
+> Security: the debugging port is a browser master switch. Keep the portproxy
+> bound to your own machine / trusted network; do not expose `9222` on the
+> public internet.
 
 ## Tools
 
