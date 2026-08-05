@@ -1,8 +1,14 @@
 # cdt-smart-snapshot bug 修复任务书 ROUND 3
 
 项目路径: /mnt/c/code/cdt-smart-snapshot
-当前 HEAD: a347052（v0.1.4 已发布）
+当前 HEAD: 8ac60ce（v0.1.5 已发布）
 来源: 2026-08-05 Hermes 自主长测试（15站×2轮 benchmark），bench-results-3x.json 落盘
+
+## 状态
+
+- #1 已修复并随 v0.1.5 发布（commit 673ca54 + 回归测试
+  shouldNotStampBodyTextAsVisibleOnLargePageSkip；Wikipedia 缩减 2.8% → 88.1%）
+- #2 #3 未修（见下方）
 
 ## 硬性要求
 - 遵守 .cursorrules 和 AGENTS.md：无 any/as/!、禁 ts-ignore、JSDoc 齐全、
@@ -36,7 +42,7 @@ Benchmark 实测（v0.1.4 vs README 记录的 v0.1.0 数据）：
 
 ## 待修复（按优先级）
 
-### #1: stampOptimisticDomVisibility 把正文当交互节点保留（严重回归）
+### #1: stampOptimisticDomVisibility 把正文当交互节点保留（严重回归）✅ 已修复
 文件: src/core/visibility.ts（stampOptimisticDomVisibility 函数）
 - 现状: 大页跳过可见性时，对所有 backendNodeId !== undefined 的节点标
   visible:true。正文文本节点也有 backendNodeId → 大文档页几乎不缩减。
@@ -47,6 +53,9 @@ Benchmark 实测（v0.1.4 vs README 记录的 v0.1.0 数据）：
   不标 visible、对 button 节点标 visible」测试。
 - 验收: Wikipedia 类大页缩减率恢复到 ~15-20%（README v0.1.0 水平）；
   交互锚点（按钮/链接）仍保留。
+- **实际修复**: commit 673ca54（v0.1.5）——新增 OPTIMISTIC_INTERACTIVE_ROLES
+  白名单（button/link/input 等 20 个操作类角色），仅对这些角色乐观标可见。
+  实测 Wikipedia 缩减 2.8% → 88.1%（超过验收线），交互锚点 7/8 保留。
 
 ### #2: Baidu/Zhihu 负缩减（smart 比官方还大）
 文件: 待排查（可能是 visibility 或 interaction 过滤对这类页面失效）
