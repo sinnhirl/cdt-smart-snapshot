@@ -50,7 +50,9 @@ function pathSegment(node: TextSnapshotNode): string {
  * @returns Map keyed by uid.
  * @throws Never throws.
  */
-export function buildUidIndex(root: TextSnapshotNode): Map<number, UidIndexEntry> {
+export function buildUidIndex(
+  root: TextSnapshotNode,
+): Map<number, UidIndexEntry> {
   const index = new Map<number, UidIndexEntry>();
   const queue: Array<{node: TextSnapshotNode; pathPrefix: string}> = [
     {node: root, pathPrefix: ''},
@@ -71,8 +73,7 @@ export function buildUidIndex(root: TextSnapshotNode): Map<number, UidIndexEntry
     }
 
     const segment = pathSegment(node);
-    const path =
-      pathPrefix.length > 0 ? `${pathPrefix} > ${segment}` : segment;
+    const path = pathPrefix.length > 0 ? `${pathPrefix} > ${segment}` : segment;
 
     const entry: UidIndexEntry = {
       uid: node.uid,

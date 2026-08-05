@@ -71,8 +71,7 @@ export async function handleGetNode(
       );
     }
 
-    const namePart =
-      entry.name.length > 0 ? `"${entry.name}"` : '';
+    const namePart = entry.name.length > 0 ? `"${entry.name}"` : '';
     const lines: string[] = [
       `uid=${String(entry.uid)} [${entry.role}] ${namePart}`.trimEnd(),
       `path: ${entry.path}`,

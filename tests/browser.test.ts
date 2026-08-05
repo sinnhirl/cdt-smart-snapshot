@@ -169,8 +169,15 @@ describe('page diagnostics', () => {
    * Builds a mock browser whose pages() returns a single page with an
    * `on` method that records handlers by event name.
    */
-  function makeDiagnosticsBrowser(handlers: Record<string, Array<(arg: unknown) => void>>): MockBrowserHandle & {
-    pages: () => Promise<Array<{url: () => string; on: (event: string, handler: (arg: unknown) => void) => void}>>;
+  function makeDiagnosticsBrowser(
+    handlers: Record<string, Array<(arg: unknown) => void>>,
+  ): MockBrowserHandle & {
+    pages: () => Promise<
+      Array<{
+        url: () => string;
+        on: (event: string, handler: (arg: unknown) => void) => void;
+      }>
+    >;
   } {
     const base = makeMockBrowser();
     // One stable page object across calls — getActivePage's attachPageDiagnostics

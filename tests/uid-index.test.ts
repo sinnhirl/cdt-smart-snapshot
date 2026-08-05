@@ -41,9 +41,7 @@ function node(
 describe('uid-index', () => {
   it('shouldBuildPathRoleNameAndChildCountViaBfs', () => {
     const tree = node(1, 'RootWebArea', 'example.com', [
-      node(2, 'main', '', [
-        node(3, 'button', 'Go', [], {backendNodeId: 99}),
-      ]),
+      node(2, 'main', '', [node(3, 'button', 'Go', [], {backendNodeId: 99})]),
     ]);
     const index = buildUidIndex(tree);
     const root = lookupIndex(index, 1);
@@ -84,9 +82,7 @@ describe('uid-index', () => {
   it('shouldSearchValueAndPathWhenNameDoesNotMatch', () => {
     const tree = node(1, 'Document', 'page', [
       node(2, 'textbox', 'Email', [], {value: 'user@example.com'}),
-      node(3, 'navigation', 'Side', [
-        node(4, 'link', 'Home'),
-      ]),
+      node(3, 'navigation', 'Side', [node(4, 'link', 'Home')]),
     ]);
     const index = buildUidIndex(tree);
     const byValue = searchIndex(index, 'user@', 10);

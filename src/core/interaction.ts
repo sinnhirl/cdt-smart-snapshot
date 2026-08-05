@@ -82,10 +82,7 @@ export function isInteractiveRole(role: string, name: string): boolean {
   // img with a name is meaningful; unnamed decorative images are noise.
   // Chrome's AX tree reports the role as 'image' (ARIA img maps here),
   // not the historical 'img', so accept both.
-  if (
-    (role === 'img' || role === 'image') &&
-    trimmed.length > 0
-  ) {
+  if ((role === 'img' || role === 'image') && trimmed.length > 0) {
     return true;
   }
 

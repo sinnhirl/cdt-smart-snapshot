@@ -122,7 +122,10 @@ export async function handlePageStatus(
       `Title: ${lifecycle.title}`,
       `readyState: ${lifecycle.readyState}`,
       `loading: ${lifecycle.loading ? 'true' : 'false'}`,
-      ...formatDiagnosticSection('Console errors (recent 5):', diagnostics.consoleErrors),
+      ...formatDiagnosticSection(
+        'Console errors (recent 5):',
+        diagnostics.consoleErrors,
+      ),
       ...formatDiagnosticSection(
         'Page exceptions (recent 3):',
         diagnostics.pageExceptions.slice(-3),

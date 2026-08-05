@@ -137,9 +137,7 @@ describe('interaction', () => {
     // Interactive controls that DO need their text children (textbox value,
     // combobox selected item) must not be folded. Only self-labeling controls
     // (link/button) fold their redundant text children.
-    const tree = node(1, 'textbox', 'Search', [
-      node(2, 'text', 'typed query'),
-    ]);
+    const tree = node(1, 'textbox', 'Search', [node(2, 'text', 'typed query')]);
     const result = filterByInteraction(tree, false);
     expect(result).toBeDefined();
     if (result !== undefined) {

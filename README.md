@@ -145,11 +145,21 @@ curl -s http://<windows-host-ip>:9223/json/version
 
 ## Tools
 
-| Tool                 | Purpose                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| `smart_snapshot`     | Visible + interactive semantic tree with depth limit and dedupe |
-| `snapshot_diff`      | Added / removed / changed nodes since the last snapshot         |
-| `screenshot_to_disk` | Write screenshot to disk; returns a file path (no base64)       |
+| Tool                  | Purpose                                                               |
+| --------------------- | --------------------------------------------------------------------- |
+| `smart_snapshot`      | Visible + interactive semantic tree with depth limit and dedupe       |
+| `snapshot_diff`       | Added / removed / changed nodes since the last snapshot               |
+| `screenshot_to_disk`  | Write screenshot to disk; returns a file path (no base64)             |
+| `page_search`         | Search the latest snapshot tree by keyword; returns matching uid+path |
+| `get_node`            | Details for one uid: path, value, checked, rect, css selector         |
+| `element_to_selector` | uid → unique CSS selector (feed to official server's click/fill)      |
+| `page_status`         | URL/title/readyState/loading + recent console errors & failed reqs    |
+| `snapshot_index`      | Dump the current uid index (explore / debug)                          |
+
+Query tools (`page_search` / `get_node` / `element_to_selector`) read the uid
+index refreshed by every `smart_snapshot` / `snapshot_diff` call, so call a
+snapshot tool first. If the page navigated since the last snapshot they ask
+you to re-snapshot.
 
 ### Environment
 

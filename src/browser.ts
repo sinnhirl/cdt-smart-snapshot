@@ -693,10 +693,7 @@ export function attachPageDiagnostics(page: Page): void {
  * @returns Recent console errors, exceptions, and failed requests.
  * @throws Never throws.
  */
-export function getPageDiagnostics(
-  page: Page,
-  limit = 5,
-): PageDiagnostics {
+export function getPageDiagnostics(page: Page, limit = 5): PageDiagnostics {
   attachPageDiagnostics(page);
   const buf = diagnosticsBufferFor(page);
   const take = (entries: DiagnosticEntry[]): DiagnosticEntry[] => {
@@ -922,7 +919,11 @@ function parseDomNodeState(value: object): DomNodeState | undefined {
   if ('textContent' in value && typeof value.textContent === 'string') {
     state.textContent = value.textContent;
   }
-  if ('rect' in value && typeof value.rect === 'object' && value.rect !== null) {
+  if (
+    'rect' in value &&
+    typeof value.rect === 'object' &&
+    value.rect !== null
+  ) {
     const rect = value.rect;
     if (
       'top' in rect &&

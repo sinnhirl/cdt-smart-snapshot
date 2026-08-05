@@ -137,13 +137,16 @@ const {
       },
     ),
     queryDomByBackendNodeId: vi.fn(
-      async (): Promise<{
-        tagName: string;
-        cssSelector: string;
-        visible: boolean;
-        disabled: boolean;
-        rect: {top: number; left: number; width: number; height: number};
-      } | undefined> => ({
+      async (): Promise<
+        | {
+            tagName: string;
+            cssSelector: string;
+            visible: boolean;
+            disabled: boolean;
+            rect: {top: number; left: number; width: number; height: number};
+          }
+        | undefined
+      > => ({
         tagName: 'button',
         cssSelector: '[data-testid="compose"]',
         visible: true,

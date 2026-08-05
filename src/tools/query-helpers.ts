@@ -55,9 +55,7 @@ export function isToolError(
  * @param entry - Index row.
  * @returns Quoted name or empty.
  */
-export function formatEntryName(entry: {
-  name: string;
-}): string {
+export function formatEntryName(entry: {name: string}): string {
   if (entry.name.length > 0) {
     return `"${entry.name}"`;
   }
