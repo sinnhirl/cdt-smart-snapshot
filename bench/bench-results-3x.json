@@ -1,18 +1,18 @@
 {
-  "runAt": "2026-08-05T04:24:21.289Z",
+  "runAt": "2026-08-05T05:30:16.245Z",
   "rounds": 3,
   "roundResults": [
     {
       "Gmail (logged-in)": {
         "site": "Gmail (logged-in)",
         "url": "https://mail.google.com/",
-        "officialChars": 74082,
-        "officialNodes": 786,
-        "officialTokens": 18521,
-        "smartChars": 25017,
-        "smartNodes": 275,
-        "smartTokens": 6254,
-        "reduction": 66.23066331902486
+        "officialChars": 74001,
+        "officialNodes": 781,
+        "officialTokens": 18500,
+        "smartChars": 23757,
+        "smartNodes": 256,
+        "smartTokens": 5939,
+        "reduction": 67.89637977865164
       },
       "Wikipedia (long doc)": {
         "site": "Wikipedia (long doc)",
@@ -20,76 +20,76 @@
         "officialChars": 578252,
         "officialNodes": 16225,
         "officialTokens": 144563,
-        "smartChars": 561090,
-        "smartNodes": 12361,
-        "smartTokens": 140273,
-        "reduction": 2.9679101844870437
+        "smartChars": 462385,
+        "smartNodes": 9433,
+        "smartTokens": 115596,
+        "reduction": 20.037457717396567
       },
       "BBC News (portal)": {
         "site": "BBC News (portal)",
         "url": "https://www.bbc.com/news",
-        "officialChars": 26936,
+        "officialChars": 26962,
         "officialNodes": 375,
-        "officialTokens": 6734,
-        "smartChars": 4194,
-        "smartNodes": 55,
-        "smartTokens": 1049,
-        "reduction": 84.42975942975943
+        "officialTokens": 6741,
+        "smartChars": 4152,
+        "smartNodes": 53,
+        "smartTokens": 1038,
+        "reduction": 84.6005489207032
       },
       "Amazon (e-commerce)": {
         "site": "Amazon (e-commerce)",
         "url": "https://www.amazon.com/",
-        "officialChars": 37238,
-        "officialNodes": 859,
-        "officialTokens": 9310,
-        "smartChars": 2187,
-        "smartNodes": 65,
-        "smartTokens": 547,
-        "reduction": 94.12696707664215
+        "officialChars": 36827,
+        "officialNodes": 845,
+        "officialTokens": 9207,
+        "smartChars": 2041,
+        "smartNodes": 60,
+        "smartTokens": 510,
+        "reduction": 94.45787058408233
       },
       "Bilibili (video)": {
         "site": "Bilibili (video)",
         "url": "https://www.bilibili.com/",
-        "officialChars": 5786,
-        "officialNodes": 241,
-        "officialTokens": 1447,
-        "smartChars": 4787,
-        "smartNodes": 143,
-        "smartTokens": 1197,
-        "reduction": 17.26581403387487
+        "officialChars": 5634,
+        "officialNodes": 234,
+        "officialTokens": 1409,
+        "smartChars": 3001,
+        "smartNodes": 90,
+        "smartTokens": 750,
+        "reduction": 46.734114305999285
       },
       "JD.com (CN e-commerce)": {
         "site": "JD.com (CN e-commerce)",
         "url": "https://www.jd.com/",
-        "officialChars": 10473,
-        "officialNodes": 482,
-        "officialTokens": 2618,
-        "smartChars": 2905,
-        "smartNodes": 110,
-        "smartTokens": 726,
-        "reduction": 72.26200706578823
+        "officialChars": 12313,
+        "officialNodes": 585,
+        "officialTokens": 3078,
+        "smartChars": 4134,
+        "smartNodes": 156,
+        "smartTokens": 1034,
+        "reduction": 66.42572890440998
       },
       "GitHub (dev platform)": {
         "site": "GitHub (dev platform)",
         "url": "https://github.com/",
-        "officialChars": 4395,
+        "officialChars": 4394,
         "officialNodes": 134,
         "officialTokens": 1099,
-        "smartChars": 3955,
-        "smartNodes": 89,
-        "smartTokens": 989,
-        "reduction": 10.011376564277585
+        "smartChars": 3571,
+        "smartNodes": 78,
+        "smartTokens": 893,
+        "reduction": 18.730086481565767
       },
       "163.com (CN portal)": {
         "site": "163.com (CN portal)",
         "url": "https://www.163.com/",
-        "officialChars": 38138,
-        "officialNodes": 1485,
-        "officialTokens": 9535,
-        "smartChars": 7837,
-        "smartNodes": 259,
-        "smartTokens": 1959,
-        "reduction": 79.45094131837013
+        "officialChars": 32076,
+        "officialNodes": 1154,
+        "officialTokens": 8019,
+        "smartChars": 5167,
+        "smartNodes": 167,
+        "smartTokens": 1292,
+        "reduction": 83.89138296545704
       },
       "Google (search)": {
         "site": "Google (search)",
@@ -97,10 +97,10 @@
         "officialChars": 913,
         "officialNodes": 37,
         "officialTokens": 228,
-        "smartChars": 898,
-        "smartNodes": 27,
-        "smartTokens": 225,
-        "reduction": 1.642935377875132
+        "smartChars": 830,
+        "smartNodes": 25,
+        "smartTokens": 208,
+        "reduction": 9.090909090909093
       },
       "YouTube (video)": {
         "site": "YouTube (video)",
@@ -108,32 +108,32 @@
         "officialChars": 2667,
         "officialNodes": 105,
         "officialTokens": 667,
-        "smartChars": 1509,
-        "smartNodes": 42,
-        "smartTokens": 377,
-        "reduction": 43.41957255343082
+        "smartChars": 1414,
+        "smartNodes": 39,
+        "smartTokens": 354,
+        "reduction": 46.981627296587924
       },
       "Reddit (social)": {
         "site": "Reddit (social)",
         "url": "https://www.reddit.com/",
-        "officialChars": 35055,
-        "officialNodes": 795,
-        "officialTokens": 8764,
-        "smartChars": 4683,
-        "smartNodes": 107,
-        "smartTokens": 1171,
-        "reduction": 86.64099272571673
+        "officialChars": 31512,
+        "officialNodes": 791,
+        "officialTokens": 7878,
+        "smartChars": 3870,
+        "smartNodes": 93,
+        "smartTokens": 968,
+        "reduction": 87.71896420411271
       },
       "Baidu (CN search)": {
         "site": "Baidu (CN search)",
         "url": "https://www.baidu.com/",
-        "officialChars": 1972,
-        "officialNodes": 89,
-        "officialTokens": 493,
-        "smartChars": 2175,
-        "smartNodes": 68,
-        "smartTokens": 544,
-        "reduction": -10.294117647058831
+        "officialChars": 2025,
+        "officialNodes": 92,
+        "officialTokens": 506,
+        "smartChars": 1516,
+        "smartNodes": 49,
+        "smartTokens": 379,
+        "reduction": 25.135802469135804
       },
       "Zhihu (CN Q&A)": {
         "site": "Zhihu (CN Q&A)",
@@ -141,45 +141,45 @@
         "officialChars": 2682,
         "officialNodes": 104,
         "officialTokens": 671,
-        "smartChars": 3035,
-        "smartNodes": 88,
-        "smartTokens": 759,
-        "reduction": -13.16181953765847
+        "smartChars": 1811,
+        "smartNodes": 52,
+        "smartTokens": 453,
+        "reduction": 32.47576435495898
       },
       "CNN (news)": {
         "site": "CNN (news)",
         "url": "https://www.cnn.com/",
-        "officialChars": 40976,
-        "officialNodes": 727,
-        "officialTokens": 10244,
-        "smartChars": 4450,
-        "smartNodes": 82,
-        "smartTokens": 1113,
-        "reduction": 89.13998438110113
+        "officialChars": 40094,
+        "officialNodes": 720,
+        "officialTokens": 10024,
+        "smartChars": 3037,
+        "smartNodes": 58,
+        "smartTokens": 759,
+        "reduction": 92.42530054372226
       },
       "Stack Overflow (Q&A)": {
         "site": "Stack Overflow (Q&A)",
         "url": "https://stackoverflow.com/",
-        "officialChars": 23069,
-        "officialNodes": 531,
-        "officialTokens": 5767,
-        "smartChars": 8764,
-        "smartNodes": 169,
-        "smartTokens": 2191,
-        "reduction": 62.00962330400104
+        "officialChars": 22888,
+        "officialNodes": 535,
+        "officialTokens": 5722,
+        "smartChars": 8317,
+        "smartNodes": 157,
+        "smartTokens": 2079,
+        "reduction": 63.662181055574976
       }
     },
     {
       "Gmail (logged-in)": {
         "site": "Gmail (logged-in)",
         "url": "https://mail.google.com/",
-        "officialChars": 73913,
-        "officialNodes": 778,
-        "officialTokens": 18478,
-        "smartChars": 24865,
-        "smartNodes": 259,
-        "smartTokens": 6216,
-        "reduction": 66.35909785829286
+        "officialChars": 73917,
+        "officialNodes": 779,
+        "officialTokens": 18479,
+        "smartChars": 23690,
+        "smartNodes": 242,
+        "smartTokens": 5923,
+        "reduction": 67.95053911820015
       },
       "Wikipedia (long doc)": {
         "site": "Wikipedia (long doc)",
@@ -187,43 +187,43 @@
         "officialChars": 578252,
         "officialNodes": 16225,
         "officialTokens": 144563,
-        "smartChars": 562627,
-        "smartNodes": 12361,
-        "smartTokens": 140657,
-        "reduction": 2.7021091150571053
+        "smartChars": 463377,
+        "smartNodes": 9433,
+        "smartTokens": 115844,
+        "reduction": 19.86590621389982
       },
       "BBC News (portal)": {
         "site": "BBC News (portal)",
         "url": "https://www.bbc.com/news",
-        "officialChars": 26984,
+        "officialChars": 27012,
         "officialNodes": 375,
-        "officialTokens": 6746,
-        "smartChars": 5170,
-        "smartNodes": 64,
-        "smartTokens": 1293,
-        "reduction": 80.8404980729321
+        "officialTokens": 6753,
+        "smartChars": 2578,
+        "smartNodes": 45,
+        "smartTokens": 645,
+        "reduction": 90.45609358803495
       },
       "Amazon (e-commerce)": {
         "site": "Amazon (e-commerce)",
         "url": "https://www.amazon.com/",
-        "officialChars": 38085,
-        "officialNodes": 845,
-        "officialTokens": 9521,
-        "smartChars": 2239,
-        "smartNodes": 66,
-        "smartTokens": 560,
-        "reduction": 94.12104503085204
+        "officialChars": 36101,
+        "officialNodes": 855,
+        "officialTokens": 9025,
+        "smartChars": 2040,
+        "smartNodes": 60,
+        "smartTokens": 510,
+        "reduction": 94.34918700313011
       },
       "Bilibili (video)": {
         "site": "Bilibili (video)",
         "url": "https://www.bilibili.com/",
-        "officialChars": 5796,
-        "officialNodes": 238,
-        "officialTokens": 1449,
-        "smartChars": 4699,
-        "smartNodes": 139,
-        "smartTokens": 1175,
-        "reduction": 18.926846100759143
+        "officialChars": 5621,
+        "officialNodes": 237,
+        "officialTokens": 1405,
+        "smartChars": 3007,
+        "smartNodes": 90,
+        "smartTokens": 752,
+        "reduction": 46.5041807507561
       },
       "JD.com (CN e-commerce)": {
         "site": "JD.com (CN e-commerce)",
@@ -231,10 +231,10 @@
         "officialChars": 10473,
         "officialNodes": 482,
         "officialTokens": 2618,
-        "smartChars": 2919,
-        "smartNodes": 110,
-        "smartTokens": 730,
-        "reduction": 72.12832999140647
+        "smartChars": 2832,
+        "smartNodes": 107,
+        "smartTokens": 708,
+        "reduction": 72.95903752506445
       },
       "GitHub (dev platform)": {
         "site": "GitHub (dev platform)",
@@ -242,21 +242,21 @@
         "officialChars": 4395,
         "officialNodes": 134,
         "officialTokens": 1099,
-        "smartChars": 3946,
-        "smartNodes": 89,
-        "smartTokens": 987,
-        "reduction": 10.216154721274172
+        "smartChars": 3577,
+        "smartNodes": 78,
+        "smartTokens": 894,
+        "reduction": 18.612059158134244
       },
       "163.com (CN portal)": {
         "site": "163.com (CN portal)",
         "url": "https://www.163.com/",
-        "officialChars": 35419,
-        "officialNodes": 1319,
-        "officialTokens": 8855,
-        "smartChars": 6670,
-        "smartNodes": 216,
-        "smartTokens": 1668,
-        "reduction": 81.16829950026822
+        "officialChars": 34042,
+        "officialNodes": 1228,
+        "officialTokens": 8511,
+        "smartChars": 5042,
+        "smartNodes": 163,
+        "smartTokens": 1261,
+        "reduction": 85.18888431937019
       },
       "Google (search)": {
         "site": "Google (search)",
@@ -264,10 +264,10 @@
         "officialChars": 913,
         "officialNodes": 37,
         "officialTokens": 228,
-        "smartChars": 897,
-        "smartNodes": 27,
-        "smartTokens": 224,
-        "reduction": 1.7524644030668113
+        "smartChars": 837,
+        "smartNodes": 25,
+        "smartTokens": 209,
+        "reduction": 8.324205914567361
       },
       "YouTube (video)": {
         "site": "YouTube (video)",
@@ -275,32 +275,32 @@
         "officialChars": 2667,
         "officialNodes": 105,
         "officialTokens": 667,
-        "smartChars": 1504,
-        "smartNodes": 42,
-        "smartTokens": 376,
-        "reduction": 43.60704911886014
+        "smartChars": 1416,
+        "smartNodes": 39,
+        "smartTokens": 354,
+        "reduction": 46.906636670416205
       },
       "Reddit (social)": {
         "site": "Reddit (social)",
         "url": "https://www.reddit.com/",
-        "officialChars": 34086,
-        "officialNodes": 793,
-        "officialTokens": 8522,
-        "smartChars": 6575,
-        "smartNodes": 114,
-        "smartTokens": 1644,
-        "reduction": 80.71055565334741
+        "officialChars": 31441,
+        "officialNodes": 794,
+        "officialTokens": 7860,
+        "smartChars": 3373,
+        "smartNodes": 90,
+        "smartTokens": 843,
+        "reduction": 89.27196972106485
       },
       "Baidu (CN search)": {
         "site": "Baidu (CN search)",
         "url": "https://www.baidu.com/",
-        "officialChars": 1977,
-        "officialNodes": 90,
-        "officialTokens": 494,
-        "smartChars": 2190,
-        "smartNodes": 69,
-        "smartTokens": 548,
-        "reduction": -10.773899848254942
+        "officialChars": 2006,
+        "officialNodes": 91,
+        "officialTokens": 502,
+        "smartChars": 1491,
+        "smartNodes": 48,
+        "smartTokens": 373,
+        "reduction": 25.672981056829514
       },
       "Zhihu (CN Q&A)": {
         "site": "Zhihu (CN Q&A)",
@@ -308,32 +308,199 @@
         "officialChars": 2682,
         "officialNodes": 104,
         "officialTokens": 671,
-        "smartChars": 3035,
-        "smartNodes": 88,
-        "smartTokens": 759,
-        "reduction": -13.16181953765847
+        "smartChars": 1815,
+        "smartNodes": 52,
+        "smartTokens": 454,
+        "reduction": 32.32662192393736
       },
       "CNN (news)": {
         "site": "CNN (news)",
         "url": "https://www.cnn.com/",
-        "officialChars": 41331,
-        "officialNodes": 733,
-        "officialTokens": 10333,
-        "smartChars": 4793,
-        "smartNodes": 88,
-        "smartTokens": 1198,
-        "reduction": 88.40337761002637
+        "officialChars": 40542,
+        "officialNodes": 729,
+        "officialTokens": 10136,
+        "smartChars": 3467,
+        "smartNodes": 65,
+        "smartTokens": 867,
+        "reduction": 91.44837452518377
       },
       "Stack Overflow (Q&A)": {
         "site": "Stack Overflow (Q&A)",
         "url": "https://stackoverflow.com/",
-        "officialChars": 23476,
-        "officialNodes": 533,
-        "officialTokens": 5869,
-        "smartChars": 9074,
-        "smartNodes": 176,
-        "smartTokens": 2269,
-        "reduction": 61.34775941386948
+        "officialChars": 23127,
+        "officialNodes": 534,
+        "officialTokens": 5782,
+        "smartChars": 8185,
+        "smartNodes": 155,
+        "smartTokens": 2046,
+        "reduction": 64.60846629480695
+      }
+    },
+    {
+      "Gmail (logged-in)": {
+        "site": "Gmail (logged-in)",
+        "url": "https://mail.google.com/",
+        "officialChars": 74053,
+        "officialNodes": 785,
+        "officialTokens": 18513,
+        "smartChars": 23666,
+        "smartNodes": 260,
+        "smartTokens": 5917,
+        "reduction": 68.04180789434594
+      },
+      "Wikipedia (long doc)": {
+        "site": "Wikipedia (long doc)",
+        "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+        "officialChars": 578252,
+        "officialNodes": 16225,
+        "officialTokens": 144563,
+        "smartChars": 463738,
+        "smartNodes": 9433,
+        "smartTokens": 115935,
+        "reduction": 19.80347668490554
+      },
+      "BBC News (portal)": {
+        "site": "BBC News (portal)",
+        "url": "https://www.bbc.com/news",
+        "officialChars": 27062,
+        "officialNodes": 374,
+        "officialTokens": 6766,
+        "smartChars": 4150,
+        "smartNodes": 53,
+        "smartTokens": 1038,
+        "reduction": 84.66484369226221
+      },
+      "Amazon (e-commerce)": {
+        "site": "Amazon (e-commerce)",
+        "url": "https://www.amazon.com/",
+        "officialChars": 36101,
+        "officialNodes": 855,
+        "officialTokens": 9025,
+        "smartChars": 2032,
+        "smartNodes": 60,
+        "smartTokens": 508,
+        "reduction": 94.37134705409822
+      },
+      "Bilibili (video)": {
+        "site": "Bilibili (video)",
+        "url": "https://www.bilibili.com/",
+        "officialChars": 5963,
+        "officialNodes": 234,
+        "officialTokens": 1491,
+        "smartChars": 3097,
+        "smartNodes": 90,
+        "smartTokens": 774,
+        "reduction": 48.063055508972
+      },
+      "JD.com (CN e-commerce)": {
+        "site": "JD.com (CN e-commerce)",
+        "url": "https://www.jd.com/",
+        "officialChars": 10473,
+        "officialNodes": 482,
+        "officialTokens": 2618,
+        "smartChars": 2830,
+        "smartNodes": 107,
+        "smartTokens": 708,
+        "reduction": 72.97813424997612
+      },
+      "GitHub (dev platform)": {
+        "site": "GitHub (dev platform)",
+        "url": "https://github.com/",
+        "officialChars": 3681,
+        "officialNodes": 119,
+        "officialTokens": 920,
+        "smartChars": 3048,
+        "smartNodes": 67,
+        "smartTokens": 762,
+        "reduction": 17.196414017929907
+      },
+      "163.com (CN portal)": {
+        "site": "163.com (CN portal)",
+        "url": "https://www.163.com/",
+        "officialChars": 30911,
+        "officialNodes": 1096,
+        "officialTokens": 7728,
+        "smartChars": 5129,
+        "smartNodes": 163,
+        "smartTokens": 1282,
+        "reduction": 83.40720131991847
+      },
+      "Google (search)": {
+        "site": "Google (search)",
+        "url": "https://www.google.com/",
+        "officialChars": 913,
+        "officialNodes": 37,
+        "officialTokens": 228,
+        "smartChars": 837,
+        "smartNodes": 25,
+        "smartTokens": 209,
+        "reduction": 8.324205914567361
+      },
+      "YouTube (video)": {
+        "site": "YouTube (video)",
+        "url": "https://www.youtube.com/",
+        "officialChars": 2667,
+        "officialNodes": 105,
+        "officialTokens": 667,
+        "smartChars": 1414,
+        "smartNodes": 39,
+        "smartTokens": 354,
+        "reduction": 46.981627296587924
+      },
+      "Reddit (social)": {
+        "site": "Reddit (social)",
+        "url": "https://www.reddit.com/",
+        "officialChars": 33379,
+        "officialNodes": 837,
+        "officialTokens": 8345,
+        "smartChars": 2853,
+        "smartNodes": 73,
+        "smartTokens": 713,
+        "reduction": 91.452709787591
+      },
+      "Baidu (CN search)": {
+        "site": "Baidu (CN search)",
+        "url": "https://www.baidu.com/",
+        "officialChars": 2006,
+        "officialNodes": 91,
+        "officialTokens": 502,
+        "smartChars": 1494,
+        "smartNodes": 48,
+        "smartTokens": 374,
+        "reduction": 25.523429710867397
+      },
+      "Zhihu (CN Q&A)": {
+        "site": "Zhihu (CN Q&A)",
+        "url": "https://www.zhihu.com/",
+        "officialChars": 2682,
+        "officialNodes": 104,
+        "officialTokens": 671,
+        "smartChars": 1807,
+        "smartNodes": 52,
+        "smartTokens": 452,
+        "reduction": 32.62490678598061
+      },
+      "CNN (news)": {
+        "site": "CNN (news)",
+        "url": "https://www.cnn.com/",
+        "officialChars": 40407,
+        "officialNodes": 726,
+        "officialTokens": 10102,
+        "smartChars": 3467,
+        "smartNodes": 65,
+        "smartTokens": 867,
+        "reduction": 91.41980349939367
+      },
+      "Stack Overflow (Q&A)": {
+        "site": "Stack Overflow (Q&A)",
+        "url": "https://stackoverflow.com/",
+        "officialChars": 22798,
+        "officialNodes": 525,
+        "officialTokens": 5700,
+        "smartChars": 7755,
+        "smartNodes": 146,
+        "smartTokens": 1939,
+        "reduction": 65.98385823317835
       }
     }
   ]
