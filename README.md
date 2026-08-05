@@ -240,6 +240,20 @@ Every snapshot starts with the page root line, e.g.
 v0.1.7 — the root was dropped by the visibility pass and named logos were
 filtered out — so any snapshot output you see is from v0.1.7+ unless stated.
 
+## DOM query tools (v0.2.x)
+
+`get_node` / `element_to_selector` read live DOM state behind a uid. **v0.2.0
+had a bug that made every DOM lookup fail** (CDP objectId bound to the wrong
+session); it is fixed in **v0.2.1**. If you're on 0.2.0, upgrade:
+
+```bash
+npm install -g cdt-smart-snapshot@latest
+```
+
+After upgrading, `element_to_selector(uid)` returns a unique CSS selector you
+can feed straight to the official chrome-devtools-mcp `click` / `fill`, and
+`get_node(uid)` shows the real element state (value, checked, rect, selector).
+
 ## Development
 
 ```bash
