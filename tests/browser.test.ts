@@ -282,7 +282,19 @@ describe('page diagnostics', () => {
     expect(handlers.console.length).toBe(1);
     await disconnectBrowser();
     handlers.console.length = 0;
-    connectMock.mockResolvedValue(browserWithPages);
+    // New browser + new page object (real disconnect drops the old CDP
+    // connection; a fresh connect yields fresh page objects). The WeakSet
+    // dedupe must attach listeners on the new object.
+    const fresh = {
+      url: () => 'https://example.com',
+      on: (event: string, handler: (arg: unknown) => void) => {
+        const list = handlers[event];
+        if (list !== undefined) {
+          list.push(handler);
+        }
+      },
+    };
+    connectMock.mockResolvedValue({...mockBrowser, pages: async () => [fresh]});
     await connectBrowser();
     await getActivePage();
     expect(handlers.console.length).toBe(1);

@@ -11,7 +11,7 @@
  */
 
 import puppeteer from 'puppeteer-core';
-import type {Browser, Page, SerializedAXNode} from 'puppeteer-core';
+import type {Browser, CDPSession, Page, SerializedAXNode} from 'puppeteer-core';
 
 import {loadConfig} from './config.js';
 import type {ElementVisibilityInfo, RawAxNode} from './types.js';
@@ -539,7 +539,9 @@ export interface PageDiagnostics {
 }
 
 const DIAGNOSTICS_CAP = 20;
-const diagnosticsAttached = new Set<Page>();
+// WeakSet so closed pages can be GC'd (R4-2: a Set would pin every page
+// object + its buffers for the server's lifetime).
+const diagnosticsAttached = new WeakSet<Page>();
 const diagnosticsByPage = new WeakMap<
   Page,
   {
@@ -729,11 +731,15 @@ export function clearPageDiagnostics(page: Page): void {
 /**
  * Clears attach tracking (called from disconnectBrowser).
  *
+ * With a WeakSet this is a no-op: page objects are released by GC once the
+ * browser disconnects and references drop, so attach state clears itself.
+ * The function stays for API compatibility (tests / disconnect path).
+ *
  * @returns void
  * @throws Never throws.
  */
 export function resetDiagnosticsAttachmentState(): void {
-  diagnosticsAttached.clear();
+  // WeakSet has no clear(); GC handles release. Intentionally empty.
 }
 
 /**
@@ -825,23 +831,34 @@ const DOM_STATE_READER_FUNCTION = String.raw`function() {
 }`;
 
 /**
- * Resolves backendNodeId to objectId via CDP DOM.resolveNode.
+ * Resolves backendNodeId to objectId via CDP DOM.resolveNode, keeping the
+ * session that created the objectId so callers can reuse it.
+ *
+ * Why: CDP objectIds are bound to the session that created them. A fresh
+ * session calling Runtime.callFunctionOn with an objectId from another
+ * session fails with "Could not find object with given id" — the root cause
+ * of R4-1 (DOM lookup always returned undefined).
  *
  * @param page - Puppeteer page.
  * @param backendNodeId - Chromium backend node id.
- * @returns objectId or undefined when stale / missing.
+ * @returns The CDP session and objectId, or undefined when stale / missing.
  */
 async function resolveBackendNodeObjectId(
   page: Page,
   backendNodeId: number,
-): Promise<string | undefined> {
+): Promise<{client: CDPSession; objectId: string} | undefined> {
   try {
     const client = await page.createCDPSession();
     await client.send('DOM.enable');
     const resolved: unknown = await client.send('DOM.resolveNode', {
       backendNodeId,
     });
-    return readResolveObjectId(resolved);
+    const objectId = readResolveObjectId(resolved);
+    if (objectId === undefined) {
+      await client.detach().catch(() => {});
+      return undefined;
+    }
+    return {client, objectId};
   } catch {
     return undefined;
   }
@@ -862,12 +879,12 @@ export async function queryDomByBackendNodeId(
   page: Page,
   backendNodeId: number,
 ): Promise<DomNodeState | undefined> {
-  const objectId = await resolveBackendNodeObjectId(page, backendNodeId);
-  if (objectId === undefined) {
+  const resolved = await resolveBackendNodeObjectId(page, backendNodeId);
+  if (resolved === undefined) {
     return undefined;
   }
+  const {client, objectId} = resolved;
   try {
-    const client = await page.createCDPSession();
     const raw: unknown = await client.send('Runtime.callFunctionOn', {
       objectId,
       functionDeclaration: DOM_STATE_READER_FUNCTION,
@@ -880,6 +897,8 @@ export async function queryDomByBackendNodeId(
     return parseDomNodeState(value);
   } catch {
     return undefined;
+  } finally {
+    await client.detach().catch(() => {});
   }
 }
 
