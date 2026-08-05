@@ -9,6 +9,7 @@
  * navigates the user's existing tabs (MCP multi-tab rule).
  */
 import puppeteer from 'puppeteer-core';
+import {writeFileSync} from 'node:fs';
 import {fetchAxTreeWithVisibility} from '../build/src/browser.js';
 import {normalizeAxTree} from '../build/src/core/ax-tree.js';
 import {defaultUidMapper} from '../build/src/core/uid.js';
@@ -196,6 +197,16 @@ for (let round = 1; round <= ROUNDS; round++) {
     }
   }
   roundResults.push(results);
+  // Persist after every round so a timeout/crash never loses all data.
+  writeFileSync(
+    new URL('./bench-results-3x.json', import.meta.url),
+    JSON.stringify(
+      {runAt: new Date().toISOString(), rounds: ROUNDS, roundResults},
+      null,
+      2,
+    ),
+    'utf8',
+  );
 }
 await browser.disconnect();
 
