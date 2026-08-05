@@ -7,6 +7,8 @@
  * MCP server entry: registers smart_snapshot, snapshot_diff, screenshot_to_disk.
  */
 
+import {realpathSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {Server} from '@modelcontextprotocol/sdk/server/index.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -106,12 +108,29 @@ export async function main(): Promise<void> {
   await server.connect(transport);
 }
 
-const isDirectRun =
-  process.argv[1] !== undefined &&
-  (process.argv[1].endsWith('index.js') ||
-    process.argv[1].endsWith('index.ts'));
+/**
+ * Detects direct execution (node index.js or an npm bin symlink to it).
+ *
+ * Why: process.argv[1] alone is unreliable — npm global installs expose the
+ * bin as a symlink whose name is the package command (e.g. cdt-smart-snapshot),
+ * so an endsWith('index.js') check silently skips main() and the server exits.
+ * Resolving argv[1] to its real path and comparing against this module's URL
+ * covers both direct runs and symlinked bin invocations.
+ */
+function isDirectRun(): boolean {
+  const arg1 = process.argv[1];
+  if (arg1 === undefined) {
+    return false;
+  }
+  try {
+    const real = realpathSync(arg1);
+    return import.meta.url === pathToFileURL(real).href;
+  } catch {
+    return false;
+  }
+}
 
-if (isDirectRun) {
+if (isDirectRun()) {
   main().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(message);
