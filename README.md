@@ -106,7 +106,8 @@ Combined with snapshot_diff, a 30-step agent session on an interactive page
 consumes roughly 15–20% of the tokens of repeated full take_snapshot calls.
 
 Reproduce: `node bench/multi-site-3x.mjs` (requires Edge debugging mode on 9222
-+ portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
+
+- portproxy 9223, set `CDT_BROWSER_URL=http://<windows-host-ip>:9223`).
 
 ## Development
 

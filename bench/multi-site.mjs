@@ -22,7 +22,11 @@ const BROWSER_URL = process.env.CDT_BROWSER_URL ?? 'http://172.27.64.1:9223';
 
 const SITES = [
   {name: 'Gmail (logged-in)', url: 'https://mail.google.com/', reuse: true},
-  {name: 'Wikipedia (long doc)', url: 'https://en.wikipedia.org/wiki/Artificial_intelligence', reuse: false},
+  {
+    name: 'Wikipedia (long doc)',
+    url: 'https://en.wikipedia.org/wiki/Artificial_intelligence',
+    reuse: false,
+  },
   {name: 'BBC News (portal)', url: 'https://www.bbc.com/news', reuse: false},
   {name: 'Amazon (e-commerce)', url: 'https://www.amazon.com/', reuse: false},
   {name: 'Bilibili (video)', url: 'https://www.bilibili.com/', reuse: false},
@@ -35,9 +39,13 @@ const WAIT_MS = 4000; // settle time after load
 const NAV_TIMEOUT = 20000;
 
 function countNodes(node) {
-  if (node === null || node === undefined) {return 0;}
+  if (node === null || node === undefined) {
+    return 0;
+  }
   let n = 1;
-  for (const c of node.children ?? []) {n += countNodes(c);}
+  for (const c of node.children ?? []) {
+    n += countNodes(c);
+  }
   return n;
 }
 
@@ -47,15 +55,27 @@ function countNodes(node) {
  * Uses the same puppeteer AX snapshot the official server uses.
  */
 function officialFormat(node, depth = 0) {
-  if (node === null || node === undefined) {return '';}
+  if (node === null || node === undefined) {
+    return '';
+  }
   const indent = '  '.repeat(depth);
   const attrs = [];
-  if (node.id !== undefined) {attrs.push(`uid=${node.id}`);}
-  if (node.role) {attrs.push(node.role === 'none' ? 'ignored' : node.role);}
-  if (node.name) {attrs.push(`"${node.name}"`);}
-  if (node.value !== undefined && node.value !== '') {attrs.push(`value="${node.value}"`);}
+  if (node.id !== undefined) {
+    attrs.push(`uid=${node.id}`);
+  }
+  if (node.role) {
+    attrs.push(node.role === 'none' ? 'ignored' : node.role);
+  }
+  if (node.name) {
+    attrs.push(`"${node.name}"`);
+  }
+  if (node.value !== undefined && node.value !== '') {
+    attrs.push(`value="${node.value}"`);
+  }
   let out = `${indent}${attrs.join(' ')}\n`;
-  for (const c of node.children ?? []) {out += officialFormat(c, depth + 1);}
+  for (const c of node.children ?? []) {
+    out += officialFormat(c, depth + 1);
+  }
   return out;
 }
 
@@ -64,10 +84,13 @@ async function measurePage(browser, site) {
   try {
     if (site.reuse) {
       const pages = await browser.pages();
-      page = pages.find(p => p.url().includes('mail.google.com')) ?? pages.at(-1);
+      page =
+        pages.find(p => p.url().includes('mail.google.com')) ?? pages.at(-1);
     } else {
       page = await browser.newPage();
-      await page.goto(site.url, {waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT}).catch(() => {});
+      await page
+        .goto(site.url, {waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT})
+        .catch(() => {});
       await new Promise(r => setTimeout(r, WAIT_MS));
     }
 
@@ -100,9 +123,10 @@ async function measurePage(browser, site) {
       smartChars: smartText.length,
       smartNodes,
       smartTokens: Math.round(smartText.length / 4),
-      reduction: officialText.length > 0
-        ? ((1 - smartText.length / officialText.length) * 100).toFixed(1)
-        : '0',
+      reduction:
+        officialText.length > 0
+          ? ((1 - smartText.length / officialText.length) * 100).toFixed(1)
+          : '0',
     };
   } catch (err) {
     return {
@@ -131,16 +155,20 @@ for (const site of SITES) {
   } else {
     console.log(
       `[${r.site}] official ${r.officialNodes} nodes / ${r.officialChars} chars` +
-      ` → smart ${r.smartNodes} nodes / ${r.smartChars} chars` +
-      ` (${r.reduction}% reduction)`,
+        ` → smart ${r.smartNodes} nodes / ${r.smartChars} chars` +
+        ` (${r.reduction}% reduction)`,
     );
   }
 }
 await browser.disconnect();
 
 console.log('\n=== SUMMARY TABLE ===');
-console.log('| Site | Official nodes | Official chars | Smart nodes | Smart chars | Reduction |');
-console.log('|------|---------------|----------------|-------------|-------------|-----------|');
+console.log(
+  '| Site | Official nodes | Official chars | Smart nodes | Smart chars | Reduction |',
+);
+console.log(
+  '|------|---------------|----------------|-------------|-------------|-----------|',
+);
 for (const r of results) {
   if (r.error) {
     console.log(`| ${r.site} | — | — | — | — | ERROR: ${r.error} |`);

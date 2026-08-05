@@ -9,6 +9,7 @@ page perception (reading state / finding elements / tracking changes) goes throu
 this server's 3 tools.
 
 Differentiation (verified community gaps, 2026-08):
+
 - Official only skips ignored AX nodes (#635); no semantic-level pruning
 - Official `--slim` mode (main branch, 8/3) drops snapshot/click tools entirely, keeping
   only navigate/evaluate/screenshot — a "strip capability" approach
@@ -152,35 +153,43 @@ Differentiation (verified community gaps, 2026-08):
 ## 5. Core algorithms
 
 ### 5.1 AX tree fetch & normalization (ax-tree.ts)
+
 - puppeteer-core connect (§5.5) → active page → `page.accessibility.snapshot({includeIframes: true, interestingOnly: true})`
 - Normalize to `TextSnapshotNode { uid, role, name, value?, backendNodeId?, children, visible? }`
 - AX node props: `role`, `name`, `value`, `backendNodeId`, `children`, `ignored`
 - Note: `interestingOnly: true` already drops some ignored nodes; remaining nodes still processed
 
 ### 5.2 Visibility filter (visibility.ts)
+
 Per node (batch DOM geometry via page.evaluate):
+
 - `display:none` / `visibility:hidden` / `opacity:0` (inherited from ancestors) → hidden
 - `getBoundingClientRect()`: width/height 0 → hidden
 - Viewport test: `rect.top > innerHeight || rect.bottom < 0` etc. → offscreen (dropped by default; kept when includeHidden=true, marked)
 - Returns {visible, offscreen} binary state for filtering/marking
 
 ### 5.3 Interaction filter (interaction.ts)
+
 Role whitelist (keep):
+
 ```
 button, link, input, checkbox, radio, combobox, textbox, listbox, option,
 menuitem, menuitemcheckbox, menuitemradio, tab, switch, slider, spinbutton,
 searchbox, dialog, alert, alertdialog, article, heading, table, row, cell,
 img (when named), text (when non-empty), banner, main, navigation, region (when named)
 ```
+
 Collapse (container only, not emitted): `group, generic, list, listitem, paragraph,
 statictext, complementary, contentinfo, form, section`. Landmarks (region etc.) collapse
 when unnamed, emit when named.
 
 ### 5.4 Dedupe + depth (dedupe.ts / prune.ts)
+
 - Dedupe: consecutive siblings with same role+name merge into `×N`; first uid is representative
 - Depth: BFS; subtrees deeper than maxDepth collapse to `[+] "name" (N child nodes, uid=M)`
 
 ### 5.5 browser.ts connection management
+
 - Config: `CDT_WS_ENDPOINT` (preferred) or `CDT_BROWSER_URL` (default `http://127.0.0.1:9222`; portproxy case 9223)
 - `puppeteer.connect({browserURL})`, singleton; one auto-reconnect attempt
 - Page pick: last active page in `browser.pages()` (skip about:blank and devtools pages)
@@ -189,7 +198,9 @@ when unnamed, emit when named.
   (gateway from `ip route show default`), NOT 127.0.0.1 — e.g. `CDT_BROWSER_URL=http://172.27.64.1:9223`
 
 ### 5.6 Diff algorithm (diff.ts)
+
 Input: prevSnapshot (with uid→node map), currSnapshot
+
 ```
 BFS over curr:
   uid in prev and attrs identical (role/name/value/visible) → skip
@@ -198,6 +209,7 @@ BFS over curr:
 BFS over prev:
   uid not in curr → - removed
 ```
+
 Output in DOM order; adds/changes follow curr order, removals interleaved at parent position.
 "Identical" = role, name, value, visible all equal.
 Context: parent line (role/name) + direct diff lines (±2 indent levels).
@@ -205,6 +217,7 @@ Context: parent line (role/name) + direct diff lines (±2 indent levels).
 ## 6. Engineering standards (mirror official chrome-devtools-mcp)
 
 ### 6.1 tsconfig.json (strict)
+
 ```json
 {
   "compilerOptions": {
@@ -230,6 +243,7 @@ Context: parent line (role/name) + direct diff lines (±2 indent levels).
 ```
 
 ### 6.2 eslint.config.mjs (flat config, official rules subset)
+
 - `typescript-eslint` recommended + stylistic
 - `@stylistic/semi: error`, `curly: [error, all]`
 - `@typescript-eslint/no-explicit-any: [error, {ignoreRestArgs: true}]`
@@ -242,6 +256,7 @@ Context: parent line (role/name) + direct diff lines (±2 indent levels).
 - ignores: node_modules, build
 
 ### 6.3 .prettierrc.cjs (official)
+
 ```js
 module.exports = {
   bracketSpacing: false,
@@ -254,6 +269,7 @@ module.exports = {
 ```
 
 ### 6.4 package.json scripts
+
 ```json
 {
   "type": "module",
@@ -273,6 +289,7 @@ module.exports = {
 ## 7. AI collaboration rules (.cursorrules + AGENTS.md content, verbatim)
 
 ### .cursorrules
+
 ```
 # cdt-smart-snapshot project rules (AI must comply)
 
@@ -310,6 +327,7 @@ module.exports = {
 ```
 
 ### AGENTS.md
+
 ```
 # cdt-smart-snapshot
 
@@ -336,6 +354,7 @@ Token-efficient snapshot MCP server for Chrome DevTools Protocol.
 ## 8. TDD test checklist (write tests first; all must pass for MVP)
 
 tests/visibility.test.ts:
+
 - [ ] shouldMarkDisplayNoneNodeAsHidden
 - [ ] shouldMarkVisibilityHiddenNodeAsHidden
 - [ ] shouldMarkZeroSizeNodeAsHidden
@@ -343,6 +362,7 @@ tests/visibility.test.ts:
 - [ ] shouldMarkInViewportNodeAsVisible
 
 tests/interaction.test.ts:
+
 - [ ] shouldKeepButtonRole
 - [ ] shouldKeepLinkRoleWithName
 - [ ] shouldKeepInputRole
@@ -351,25 +371,30 @@ tests/interaction.test.ts:
 - [ ] shouldKeepTextNodeWithNonEmptyName
 
 tests/dedupe.test.ts:
+
 - [ ] shouldMergeConsecutiveSameRoleNameSiblingsIntoCount
 - [ ] shouldNotMergeDifferentRoles
 - [ ] shouldKeepFirstUidAsRepresentative
 
 tests/prune.test.ts:
+
 - [ ] shouldCollapseSubtreeBeyondMaxDepth
 - [ ] shouldShowCollapsedSummaryWithChildCountAndUid
 
 tests/snapshot.test.ts:
+
 - [ ] shouldProduceFormattedTreeWithRolesNamesUids
 - [ ] shouldApplyAllFourPipelinesInOrder
 - [ ] shouldIncludeHiddenWhenRequested
 
 tests/uid.test.ts:
+
 - [ ] shouldAssignStableUidFromBackendNodeId
 - [ ] shouldReuseUidForSameBackendNodeAcrossSnapshots
 - [ ] shouldGenerateFreshUidWhenBackendNodeIdMissing
 
 tests/diff.test.ts:
+
 - [ ] shouldReportAddedNode
 - [ ] shouldReportRemovedNode
 - [ ] shouldReportChangedName
@@ -380,6 +405,7 @@ tests/diff.test.ts:
 - [ ] shouldSortOutputByDomOrder
 
 tests/tools.test.ts (mock page, no live browser):
+
 - [ ] smart_snapshotShouldReturnTextContent
 - [ ] smart_snapshotShouldReturnErrorWhenNoPage
 - [ ] snapshot_diffShouldReturnInitialOnFirstCall
@@ -397,6 +423,7 @@ tests/tools.test.ts (mock page, no live browser):
 - [ ] README.md: install, MCP config example (Hermes/Claude Code), tool docs, benchmark table
 
 ## 10. Later stages (not in this MVP)
+
 - Stage 5: live-environment benchmark (Edge 9222, 30-step mail session token comparison, fill README table)
 - Stage 6: npm publish + GitHub repo (Apache-2.0) + LICENSE
 - Stage 7 (far future): take benchmark data to official issue #1966 proposal

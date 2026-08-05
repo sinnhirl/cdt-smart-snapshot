@@ -48,7 +48,9 @@ resetDiffHistory();
 console.error('[demo] === Step 1: initial snapshot (full) ===');
 let snap = await snapshotPage(browser);
 const step1 = runSnapshotDiff(snap.root, snap.text);
-console.log(`[step1] ${step1.split('\n').length} lines (full tree, chars=${step1.length})`);
+console.log(
+  `[step1] ${step1.split('\n').length} lines (full tree, chars=${step1.length})`,
+);
 
 // Step 2: no mutation → expect "(no changes)"
 console.error('[demo] === Step 2: no page change ===');
@@ -80,7 +82,9 @@ while (queue.length > 0 && (renamed < 1 || added < 1)) {
     });
     added += 1;
   }
-  for (const c of node.children ?? []) {queue.push(c);}
+  for (const c of node.children ?? []) {
+    queue.push(c);
+  }
 }
 const step3 = runSnapshotDiff(mutated, snap.text);
 console.log(`[step3] ${step3.split('\n').length} lines, chars=${step3.length}`);

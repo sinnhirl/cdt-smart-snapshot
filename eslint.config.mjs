@@ -21,6 +21,7 @@ export default defineConfig([
             'vitest.config.ts',
             'bench/bench.mjs',
             'bench/diff-demo.mjs',
+            'bench/integrity.mjs',
             'bench/multi-site.mjs',
             'bench/multi-site-3x.mjs',
           ],

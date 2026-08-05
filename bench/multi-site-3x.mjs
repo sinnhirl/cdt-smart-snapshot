@@ -14,7 +14,10 @@ import {normalizeAxTree} from '../build/src/core/ax-tree.js';
 import {defaultUidMapper} from '../build/src/core/uid.js';
 import {applyVisibility, filterHidden} from '../build/src/core/visibility.js';
 import {filterByInteraction} from '../build/src/core/interaction.js';
-import {dedupeTree, collapseSameNameChildren} from '../build/src/core/dedupe.js';
+import {
+  dedupeTree,
+  collapseSameNameChildren,
+} from '../build/src/core/dedupe.js';
 import {pruneTree} from '../build/src/core/prune.js';
 import {formatTree} from '../build/src/core/snapshot.js';
 import {remapVisibilityToUid} from '../build/src/tools/helpers.js';
@@ -24,7 +27,10 @@ const ROUNDS = 3;
 
 const SITES = [
   {name: 'Gmail (logged-in)', url: 'https://mail.google.com/'},
-  {name: 'Wikipedia (long doc)', url: 'https://en.wikipedia.org/wiki/Artificial_intelligence'},
+  {
+    name: 'Wikipedia (long doc)',
+    url: 'https://en.wikipedia.org/wiki/Artificial_intelligence',
+  },
   {name: 'BBC News (portal)', url: 'https://www.bbc.com/news'},
   {name: 'Amazon (e-commerce)', url: 'https://www.amazon.com/'},
   {name: 'Bilibili (video)', url: 'https://www.bilibili.com/'},
@@ -45,9 +51,13 @@ const SETTLE_MS = 3000;
 const MIN_NODES_OK = 30; // below this, page likely didn't finish loading → retry
 
 function countNodes(node) {
-  if (node === null || node === undefined) {return 0;}
+  if (node === null || node === undefined) {
+    return 0;
+  }
   let n = 1;
-  for (const c of node.children ?? []) {n += countNodes(c);}
+  for (const c of node.children ?? []) {
+    n += countNodes(c);
+  }
   return n;
 }
 
@@ -56,15 +66,27 @@ function countNodes(node) {
  * `uid=N role "name" value="..."` with 2-space indent per depth.
  */
 function officialFormat(node, depth = 0) {
-  if (node === null || node === undefined) {return '';}
+  if (node === null || node === undefined) {
+    return '';
+  }
   const indent = '  '.repeat(depth);
   const attrs = [];
-  if (node.id !== undefined) {attrs.push(`uid=${node.id}`);}
-  if (node.role) {attrs.push(node.role === 'none' ? 'ignored' : node.role);}
-  if (node.name) {attrs.push(`"${node.name}"`);}
-  if (node.value !== undefined && node.value !== '') {attrs.push(`value="${node.value}"`);}
+  if (node.id !== undefined) {
+    attrs.push(`uid=${node.id}`);
+  }
+  if (node.role) {
+    attrs.push(node.role === 'none' ? 'ignored' : node.role);
+  }
+  if (node.name) {
+    attrs.push(`"${node.name}"`);
+  }
+  if (node.value !== undefined && node.value !== '') {
+    attrs.push(`value="${node.value}"`);
+  }
   let out = `${indent}${attrs.join(' ')}\n`;
-  for (const c of node.children ?? []) {out += officialFormat(c, depth + 1);}
+  for (const c of node.children ?? []) {
+    out += officialFormat(c, depth + 1);
+  }
   return out;
 }
 
@@ -72,28 +94,36 @@ async function loadPage(page, url) {
   // Try up to 2 times: networkidle2 + settle; fall back to a longer wait.
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      await page.goto(url, {waitUntil: 'networkidle2', timeout: NAV_TIMEOUT}).catch(() => {});
+      await page
+        .goto(url, {waitUntil: 'networkidle2', timeout: NAV_TIMEOUT})
+        .catch(() => {});
     } catch {
       /* ignore nav errors — page may still partially render */
     }
     await new Promise(r => setTimeout(r, SETTLE_MS));
-    const snap = await page.accessibility.snapshot({
-      interestingOnly: true,
-      includeIframes: true,
-    }).catch(() => null);
+    const snap = await page.accessibility
+      .snapshot({
+        interestingOnly: true,
+        includeIframes: true,
+      })
+      .catch(() => null);
     if (snap !== null && countNodes(snap) >= MIN_NODES_OK) {
       return {snap, ok: true};
     }
     // Retry: force reload.
     try {
-      await page.reload({waitUntil: 'networkidle2', timeout: NAV_TIMEOUT}).catch(() => {});
+      await page
+        .reload({waitUntil: 'networkidle2', timeout: NAV_TIMEOUT})
+        .catch(() => {});
     } catch {}
     await new Promise(r => setTimeout(r, SETTLE_MS));
   }
-  const snap = await page.accessibility.snapshot({
-    interestingOnly: true,
-    includeIframes: true,
-  }).catch(() => null);
+  const snap = await page.accessibility
+    .snapshot({
+      interestingOnly: true,
+      includeIframes: true,
+    })
+    .catch(() => null);
   return {snap, ok: snap !== null && countNodes(snap) >= MIN_NODES_OK};
 }
 
@@ -102,7 +132,11 @@ async function measurePage(browser, site) {
   try {
     const {snap, ok} = await loadPage(page, site.url);
     if (!ok) {
-      return {site: site.name, url: site.url, error: 'page did not finish loading (anti-bot / lazy-load)'};
+      return {
+        site: site.name,
+        url: site.url,
+        error: 'page did not finish loading (anti-bot / lazy-load)',
+      };
     }
     const officialText = officialFormat(snap);
     const officialNodes = countNodes(snap);
@@ -119,9 +153,10 @@ async function measurePage(browser, site) {
     const smartText = formatTree(pruned);
     const smartNodes = countNodes(pruned);
 
-    const reduction = officialText.length > 0
-      ? (1 - smartText.length / officialText.length) * 100
-      : 0;
+    const reduction =
+      officialText.length > 0
+        ? (1 - smartText.length / officialText.length) * 100
+        : 0;
 
     return {
       site: site.name,
@@ -166,8 +201,12 @@ await browser.disconnect();
 
 // ---------- Summary: per-site 3-round stats ----------
 console.log('\n\n========== 3-ROUND SUMMARY (stability) ==========');
-console.log('| Site | R1 red% | R2 red% | R3 red% | avg red% | Δ(max-min) | official chars avg | smart chars avg |');
-console.log('|------|---------|---------|---------|----------|------------|--------------------|-----------------|');
+console.log(
+  '| Site | R1 red% | R2 red% | R3 red% | avg red% | Δ(max-min) | official chars avg | smart chars avg |',
+);
+console.log(
+  '|------|---------|---------|---------|----------|------------|--------------------|-----------------|',
+);
 for (const site of SITES) {
   const rs = roundResults.map(rr => rr[site.name]);
   const valid = rs.filter(r => !r.error);
@@ -178,9 +217,13 @@ for (const site of SITES) {
   const reds = valid.map(r => r.reduction);
   const avgRed = reds.reduce((a, b) => a + b, 0) / reds.length;
   const spread = Math.max(...reds) - Math.min(...reds);
-  const avgOfficial = Math.round(valid.reduce((a, r) => a + r.officialChars, 0) / valid.length);
-  const avgSmart = Math.round(valid.reduce((a, r) => a + r.smartChars, 0) / valid.length);
-  const redStr = (i) => (rs[i]?.error ? '—' : `${rs[i].reduction.toFixed(1)}%`);
+  const avgOfficial = Math.round(
+    valid.reduce((a, r) => a + r.officialChars, 0) / valid.length,
+  );
+  const avgSmart = Math.round(
+    valid.reduce((a, r) => a + r.smartChars, 0) / valid.length,
+  );
+  const redStr = i => (rs[i]?.error ? '—' : `${rs[i].reduction.toFixed(1)}%`);
   console.log(
     `| ${site.name} | ${redStr(0)} | ${redStr(1)} | ${redStr(2)} | ${avgRed.toFixed(1)}% | ${spread.toFixed(1)}pp | ${avgOfficial} | ${avgSmart} |`,
   );
@@ -188,11 +231,20 @@ for (const site of SITES) {
 
 // Overall averages (valid sites only)
 console.log('\n--- Overall (valid sites, all rounds) ---');
-const allValid = roundResults.flatMap(rr => Object.values(rr)).filter(r => !r.error);
-const overallRed = allValid.reduce((a, r) => a + r.reduction, 0) / allValid.length;
-const overallOfficial = allValid.reduce((a, r) => a + r.officialChars, 0) / allValid.length;
-const overallSmart = allValid.reduce((a, r) => a + r.smartChars, 0) / allValid.length;
+const allValid = roundResults
+  .flatMap(rr => Object.values(rr))
+  .filter(r => !r.error);
+const overallRed =
+  allValid.reduce((a, r) => a + r.reduction, 0) / allValid.length;
+const overallOfficial =
+  allValid.reduce((a, r) => a + r.officialChars, 0) / allValid.length;
+const overallSmart =
+  allValid.reduce((a, r) => a + r.smartChars, 0) / allValid.length;
 console.log(`valid measurements: ${allValid.length}/${ROUNDS * SITES.length}`);
 console.log(`avg reduction: ${overallRed.toFixed(1)}%`);
-console.log(`avg official chars: ${Math.round(overallOfficial)} → avg smart chars: ${Math.round(overallSmart)}`);
-console.log(`avg official tokens (~/4): ${Math.round(overallOfficial / 4)} → avg smart tokens: ${Math.round(overallSmart / 4)}`);
+console.log(
+  `avg official chars: ${Math.round(overallOfficial)} → avg smart chars: ${Math.round(overallSmart)}`,
+);
+console.log(
+  `avg official tokens (~/4): ${Math.round(overallOfficial / 4)} → avg smart tokens: ${Math.round(overallSmart / 4)}`,
+);

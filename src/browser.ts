@@ -408,7 +408,11 @@ export async function fetchAxTreeWithVisibility(page: Page): Promise<{
   const visibilityByBackendId = skipped
     ? new Map<number, ElementVisibilityInfo>()
     : await collectVisibilityByBackendId(snapshot);
-  return {raw: snapshotToRaw(snapshot), visibilityByBackendId, visibilitySkipped: skipped};
+  return {
+    raw: snapshotToRaw(snapshot),
+    visibilityByBackendId,
+    visibilitySkipped: skipped,
+  };
 }
 
 /**

@@ -10,10 +10,7 @@
  */
 import puppeteer from 'puppeteer-core';
 
-import {
-  fetchAxTreeWithVisibility,
-  getActivePage,
-} from '../build/src/browser.js';
+import {fetchAxTreeWithVisibility} from '../build/src/browser.js';
 import {normalizeAxTree} from '../build/src/core/ax-tree.js';
 import {defaultUidMapper} from '../build/src/core/uid.js';
 import {remapVisibilityToUid} from '../build/src/tools/helpers.js';
@@ -99,7 +96,13 @@ async function checkOne(page, site) {
     if (lines.length > 0) {
       console.log(`  sample: ${lines.slice(0, 3).join(' | ')}`);
     }
-    return {site: site.name, found, missing, chars: text.length, skipped: visibilitySkipped};
+    return {
+      site: site.name,
+      found,
+      missing,
+      chars: text.length,
+      skipped: visibilitySkipped,
+    };
   } finally {
     await tab.close();
   }
@@ -118,21 +121,44 @@ async function main() {
       try {
         results.push(await checkOne(page, site));
       } catch (err) {
-        console.log(`\n=== ${site.name} === ERROR: ${String(err).slice(0, 120)}`);
-        results.push({site: site.name, found: [], missing: site.anchors, error: true});
+        console.log(
+          `\n=== ${site.name} === ERROR: ${String(err).slice(0, 120)}`,
+        );
+        results.push({
+          site: site.name,
+          found: [],
+          missing: site.anchors,
+          error: true,
+        });
       }
     }
     console.log('\n\n========== SUMMARY ==========');
     let fail = 0;
     for (const r of results) {
       const ok = r.missing.length === 0;
-      if (!ok) fail += 1;
-      console.log(`  ${ok ? '✅' : '❌'} ${r.site}: ${r.missing.length === 0 ? 'all anchors present' : `MISSING ${r.missing.join(', ')}`}`);
+      if (!ok) {
+        fail += 1;
+      }
+      console.log(
+        `  ${ok ? '✅' : '❌'} ${r.site}: ${r.missing.length === 0 ? 'all anchors present' : `MISSING ${r.missing.join(', ')}`}`,
+      );
     }
-    console.log(`\n${results.length - fail}/${results.length} sites fully intact`);
+    console.log(
+      `\n${results.length - fail}/${results.length} sites fully intact`,
+    );
   } finally {
-    await page.close();
-    await browser.disconnect();
+    // page/browser may already be gone (e.g. target closed by an earlier
+    // failure); swallow cleanup errors so the summary is the last output.
+    try {
+      await page.close();
+    } catch {
+      /* target already closed */
+    }
+    try {
+      await browser.disconnect();
+    } catch {
+      /* already disconnected */
+    }
   }
 }
 
