@@ -251,6 +251,34 @@ describe('page diagnostics', () => {
     expect(afterClear.consoleErrors.length).toBe(0);
   });
 
+  it('shouldAccumulateWarnConsoleMessages', async () => {
+    // R4-6: the diagnostics buffer keeps warn-level console messages (more
+    // signal than error-only); the page_status title says "messages".
+    const handlers: Record<string, Array<(arg: unknown) => void>> = {
+      console: [],
+      pageerror: [],
+      requestfailed: [],
+    };
+    connectMock.mockResolvedValue(makeDiagnosticsBrowser(handlers));
+
+    const {getActivePage, getPageDiagnostics} =
+      await import('../src/browser.js');
+    await getActivePage();
+    const consoleHandler = handlers.console[0];
+    expect(consoleHandler).toBeDefined();
+    if (consoleHandler !== undefined) {
+      consoleHandler({
+        type: () => 'warn',
+        text: () => 'deprecated api',
+      });
+    }
+    const {page} = await getActivePage();
+    const diag = getPageDiagnostics(page, 5);
+    expect(diag.consoleErrors.length).toBe(1);
+    expect(diag.consoleErrors[0]?.level).toBe('warn');
+    expect(diag.consoleErrors[0]?.message).toBe('deprecated api');
+  });
+
   it('shouldResetDiagnosticsAttachmentOnDisconnect', async () => {
     const mockBrowser = makeMockBrowser();
     connectMock.mockResolvedValue(mockBrowser);

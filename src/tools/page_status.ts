@@ -53,10 +53,13 @@ export const pageStatusDefinition: ToolDefinition = {
 /**
  * Formats milliseconds ago as a human-readable age string.
  *
+ * R4-5: format is locked by unit test so it cannot drift from the spec
+ * examples (`2 min ago` style: "<n> <unit> ago").
+ *
  * @param timestampMs - Epoch ms when the event occurred.
  * @returns String such as `2 min ago`.
  */
-function formatAge(timestampMs: number): string {
+export function formatAge(timestampMs: number): string {
   const deltaSec = Math.max(0, Math.floor((Date.now() - timestampMs) / 1000));
   if (deltaSec < 60) {
     return `${String(deltaSec)} sec ago`;
@@ -123,7 +126,8 @@ export async function handlePageStatus(
       `readyState: ${lifecycle.readyState}`,
       `loading: ${lifecycle.loading ? 'true' : 'false'}`,
       ...formatDiagnosticSection(
-        'Console errors (recent 5):',
+        // R4-6: buffer keeps error + warn (more signal); title says messages.
+        'Console messages (recent 5, error+warn):',
         diagnostics.consoleErrors,
       ),
       ...formatDiagnosticSection(

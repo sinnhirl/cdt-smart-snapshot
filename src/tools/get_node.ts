@@ -101,7 +101,11 @@ export async function handleGetNode(
     if (dom.disabled !== undefined) {
       lines.push(`disabled: ${dom.disabled ? 'true' : 'false'}`);
     }
-    lines.push(`cssSelector: ${dom.cssSelector}`);
+    // R4-4: a failed selector strategy yields an empty string; show a clear
+    // placeholder instead of an empty "cssSelector: " line.
+    lines.push(
+      `cssSelector: ${dom.cssSelector.length > 0 ? dom.cssSelector : '(none)'}`,
+    );
     if (dom.rect !== undefined) {
       lines.push(
         `rect: {top: ${String(dom.rect.top)}, left: ${String(dom.rect.left)}, width: ${String(dom.rect.width)}, height: ${String(dom.rect.height)}}`,

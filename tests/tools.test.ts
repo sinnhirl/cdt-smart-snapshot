@@ -555,6 +555,23 @@ describe('tools', () => {
     expect(text).toContain('cssSelector:');
   });
 
+  it('getNodeShouldShowNoneWhenCssSelectorEmpty', async () => {
+    // R4-4: selector strategies can all fail → cssSelector '' must render as
+    // an explicit placeholder, not an empty line.
+    await handleSmartSnapshot({});
+    queryDomByBackendNodeId.mockResolvedValueOnce({
+      tagName: 'button',
+      cssSelector: '',
+      visible: true,
+      disabled: false,
+      rect: {top: 1, left: 2, width: 80, height: 32},
+    });
+    const result = await handleGetNode({uid: 2});
+    expect(result.isError).toBeUndefined();
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('cssSelector: (none)');
+  });
+
   it('getNodeShouldErrorWhenUidNotInIndex', async () => {
     await handleSmartSnapshot({});
     const result = await handleGetNode({uid: 99999});
@@ -589,12 +606,24 @@ describe('tools', () => {
     const text = result.content[0]?.text ?? '';
     expect(text).toContain('URL: https://example.com');
     expect(text).toContain('readyState: complete');
-    expect(text).toContain('Console errors');
+    expect(text).toContain('Console messages');
     expect(text).toContain('404');
   });
 
   it('pageStatusShouldClearDiagnosticsWhenClearTrue', async () => {
     await handlePageStatus({clear: true});
     expect(clearPageDiagnostics).toHaveBeenCalled();
+  });
+});
+
+describe('page status formatAge', () => {
+  it('shouldFormatAgesInSpecStyle', async () => {
+    const {formatAge} = await import('../src/tools/page_status.js');
+    const now = Date.now();
+    // R4-5: "<n> <unit> ago" style locked so agent parsing stays stable.
+    expect(formatAge(now - 5000)).toMatch(/^\d+ sec ago$/);
+    expect(formatAge(now - 120000)).toBe('2 min ago');
+    expect(formatAge(now - 7200000)).toBe('2 hr ago');
+    expect(formatAge(now)).toMatch(/^\d+ sec ago$/);
   });
 });
