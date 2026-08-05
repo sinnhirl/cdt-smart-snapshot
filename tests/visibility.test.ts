@@ -148,6 +148,68 @@ describe('filterHidden', () => {
     }
   });
 
+  it('shouldNotStampBodyTextAsVisibleOnLargePageSkip', () => {
+    // ROUND3-1 regression: text/paragraph nodes carry backendNodeId (real DOM)
+    // but have no interaction value. Stamping them optimistic-visible made
+    // Wikipedia keep ~97% of chars (2.8% reduction). Only interactive roles
+    // should be stamped; body text stays unevaluated and gets dropped by
+    // hideUnevaluated on large pages.
+    const tree: TextSnapshotNode = {
+      uid: 1,
+      role: 'Document',
+      name: 'wiki',
+      visible: true,
+      children: [
+        {
+          uid: 2,
+          role: 'generic',
+          name: '',
+          backendNodeId: 200,
+          children: [
+            {
+              uid: 3,
+              role: 'text',
+              name: 'long body paragraph text',
+              backendNodeId: 301,
+              children: [],
+            },
+            {
+              uid: 4,
+              role: 'paragraph',
+              name: 'another paragraph',
+              backendNodeId: 302,
+              children: [],
+            },
+            {
+              uid: 5,
+              role: 'link',
+              name: 'Talk',
+              backendNodeId: 303,
+              children: [],
+            },
+            {
+              uid: 6,
+              role: 'button',
+              name: 'Edit',
+              backendNodeId: 304,
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+    const stamped = stampOptimisticDomVisibility(tree);
+    const filtered = filterHidden(stamped, false, true);
+    expect(filtered).toBeDefined();
+    if (filtered !== undefined) {
+      const kept = filtered.children[0]?.children ?? [];
+      const keptRoles = kept.map(n => n.role).sort();
+      // Body text/paragraph dropped; interactive link/button kept.
+      expect(keptRoles).toEqual(['button', 'link']);
+      expect(kept).toHaveLength(2);
+    }
+  });
+
   it('shouldDropUnevaluatedBackendNodeWhenHideUnevaluated', () => {
     // Large-page mode without optimistic stamp: unevaluated DOM nodes are not
     // assumed visible (hidden decoration with backendNodeId must not leak).

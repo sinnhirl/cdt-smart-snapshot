@@ -17,6 +17,36 @@ import type {
 } from '../types.js';
 
 /**
+ * Roles that agents can operate on directly. Used by the large-page
+ * optimistic stamp: when per-node geometry collection is skipped, only these
+ * real interaction controls are assumed visible. Body text / paragraphs are
+ * deliberately excluded — they carry no interaction value and keeping them on
+ * huge documents (Wikipedia) defeats the token-saving goal.
+ */
+const OPTIMISTIC_INTERACTIVE_ROLES: ReadonlySet<string> = new Set([
+  'button',
+  'link',
+  'input',
+  'checkbox',
+  'radio',
+  'combobox',
+  'textbox',
+  'listbox',
+  'option',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'tab',
+  'switch',
+  'slider',
+  'spinbutton',
+  'searchbox',
+  'dialog',
+  'alert',
+  'alertdialog',
+]);
+
+/**
  * Assesses whether an element is painted/has size and whether it lies offscreen.
  *
  * Why: Separating "hidden" (display/visibility/opacity/zero-size) from "offscreen"
@@ -91,14 +121,20 @@ export function applyVisibility(
 }
 
 /**
- * Marks nodes with a DOM backend id as visible when per-node geometry was skipped.
+ * Marks interactive nodes with a DOM backend id as visible when per-node
+ * geometry was skipped.
  *
  * Why: On huge pages we skip per-node CDP collection; without this stamp every
  * node would be unevaluated and hideUnevaluated would drop the entire tree.
+ * We only stamp INTERACTIVE roles (buttons/links/inputs...) — real DOM handles
+ * that agents need to operate. Body text / paragraph nodes are also real DOM
+ * with backendNodeId but have no interaction value; leaving them unevaluated
+ * lets hideUnevaluated drop them, which is what keeps large documents (e.g.
+ * Wikipedia) token-efficient. Agents read body text on demand via evaluate.
  * AX-only nodes (no backendNodeId) stay unevaluated and are still dropped.
  *
  * @param root - Normalized tree before visibility filtering.
- * @returns Tree copy with visible/offscreen set on backend-linked nodes only.
+ * @returns Tree copy with visible/offscreen set on interactive backend-linked nodes only.
  * @throws Never throws.
  */
 export function stampOptimisticDomVisibility(
@@ -108,7 +144,10 @@ export function stampOptimisticDomVisibility(
   for (const child of root.children) {
     children.push(stampOptimisticDomVisibility(child));
   }
-  if (root.backendNodeId !== undefined) {
+  if (
+    root.backendNodeId !== undefined &&
+    OPTIMISTIC_INTERACTIVE_ROLES.has(root.role)
+  ) {
     return {
       ...root,
       children,
