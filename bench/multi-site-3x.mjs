@@ -48,7 +48,7 @@ const SITES = [
 ];
 
 const NAV_TIMEOUT = 25000;
-const SETTLE_MS = 3000;
+const SETTLE_MS = 1000; // 1s is enough for the AX tree to settle after network idle
 const MIN_NODES_OK = 30; // below this, page likely didn't finish loading → retry
 
 function countNodes(node) {
