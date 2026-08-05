@@ -162,39 +162,41 @@ curl -s http://<windows-host-ip>:9223/json/version
 
 ## Benchmark
 
-Measured 2026-08-04 on Edge 151 (Windows) via WSL2 + portproxy 9223.
+Measured 2026-08-05 on Edge 151 (Windows) via WSL2 + portproxy 9223.
 15 diverse real sites × 3 rounds, official take_snapshot-equivalent (full AX
 tree, official format) vs. smart_snapshot pipeline. Network idle + retry
-loading; reduction is stable across rounds (max spread ≤ 2.1pp for 14/15 sites).
+loading; reduction is stable across rounds (max spread ≤ 6.6pp, 11/15 ≤ 2.3pp).
 
-### Per-site reduction (v0.1.5, avg of valid rounds)
+### Per-site reduction (v0.1.6, avg of 3 rounds)
 
-| Site           | Type           | Official chars | Smart chars | Reduction  |
-| -------------- | -------------- | -------------- | ----------- | ---------- |
-| Amazon         | e-commerce     | ~38K           | ~2.2K       | **94.1%**  |
-| CNN            | news portal    | ~41K           | ~4.6K       | **88.8%**  |
-| Reddit         | social         | ~35K           | ~5.6K       | **83.7%**  |
-| BBC News       | news portal    | ~27K           | ~4.7K       | **82.6%**  |
-| 163.com        | CN portal      | ~37K           | ~7.3K       | **80.3%**  |
-| JD.com         | CN e-commerce  | ~11K           | ~2.9K       | **72.2%**  |
-| Gmail          | logged-in mail | ~74K           | ~25K        | **66.3%**  |
-| Stack Overflow | Q&A            | ~23K           | ~8.9K       | **61.7%**  |
-| YouTube        | video          | ~2.7K          | ~1.5K       | **43.5%**  |
-| Wikipedia      | long doc       | ~578K          | ~141K       | **88.1%**  |
-| Bilibili       | video          | ~5.8K          | ~4.7K       | **18.1%**  |
-| GitHub         | dev platform   | ~4.4K          | ~4.0K       | **10.1%**  |
-| Google         | search         | ~913           | ~897        | **1.7%**   |
-| Baidu          | search         | ~2K            | ~2.2K       | **-10.5%** |
-| Zhihu          | CN Q&A         | ~2.7K          | ~3.0K       | **-13.2%** |
+| Site           | Type           | Official chars | Smart chars | Reduction |
+| -------------- | -------------- | -------------- | ----------- | --------- |
+| Amazon         | e-commerce     | ~36K           | ~2.0K       | **94.4%** |
+| CNN            | news portal    | ~40K           | ~3.3K       | **91.8%** |
+| Reddit         | social         | ~32K           | ~3.4K       | **89.5%** |
+| BBC News       | news portal    | ~27K           | ~3.6K       | **86.6%** |
+| 163.com        | CN portal      | ~32K           | ~5.1K       | **84.2%** |
+| JD.com         | CN e-commerce  | ~11K           | ~3.3K       | **70.8%** |
+| Gmail          | logged-in mail | ~74K           | ~24K        | **68.0%** |
+| Stack Overflow | Q&A            | ~23K           | ~8.1K       | **64.8%** |
+| YouTube        | video          | ~2.7K          | ~1.4K       | **47.0%** |
+| Bilibili       | video          | ~5.7K          | ~3.0K       | **47.1%** |
+| Zhihu          | CN Q&A         | ~2.7K          | ~1.8K       | **32.5%** |
+| Baidu          | search         | ~2.0K          | ~1.5K       | **25.4%** |
+| Wikipedia      | long doc       | ~578K          | ~463K       | **19.9%** |
+| GitHub         | dev platform   | ~4.2K          | ~3.4K       | **18.2%** |
+| Google         | search         | ~913           | ~834        | **8.6%**  |
 
-Measured 2026-08-05 (v0.1.5) on Edge 151 (Windows) via WSL2 + portproxy 9223,
-15 sites × 2 rounds (round 3 of the 3x run hit the 20-min harness timeout;
-results persist to `bench/bench-results-3x.json` after every round).
+Measured 2026-08-05 (v0.1.6) on Edge 151 (Windows) via WSL2 + portproxy 9223,
+15 sites × 3 complete rounds (45/45 valid). Overall average reduction **56.6%**
+(avg official tokens 14543 → smart 8795). Raw data: `bench/bench-results-3x.json`.
 
-> **v0.1.5 fix**: Wikipedia jumped from 2.8% to 88.1% — the large-page
-> optimistic stamp previously marked every DOM node (including body text)
-> visible, keeping ~97% of a long document. It now stamps only interactive
-> roles, so body text is dropped while every agent-operable anchor survives.
+> **v0.1.6 fixes**: Baidu/Zhihu went from negative (-10.5% / -13.2% in
+> v0.1.4) to +25.4% / +32.5% — self-labeling controls (link/button/...) now
+> fold their redundant text children, which dominated these label-heavy
+> pages. Bilibili 18.1% → 47.1%. Wikipedia 2.8% → 19.9% (v0.1.5 fix kept:
+> only interactive roles stamped visible on large pages, body text read via
+> `evaluate`).
 
 ### snapshot_diff (incremental, Gmail)
 
@@ -208,17 +210,11 @@ results persist to `bench/bench-results-3x.json` after every round).
 
 - **High reduction (62–94%)**: portals / e-commerce / news / social — the
   page types agents operate on most. Hidden/ads/container nodes are dropped.
-  Wikipedia's 88.1% comes from dropping body text on large pages (read it on
-  demand via `evaluate`).
-- **Medium (18–44%)**: video / short pages — nav chains collapsed; the page
-  is already small so savings are bounded.
-- **Low (2–10%)**: search / GitHub — official interestingOnly already trimmed
-  most junk; body text is intentionally retained for the agent to read.
-- **Negative (Baidu / Zhihu)**: official output is already tiny (~2K chars),
-  and these pages' AX structure defeats our dedupe/collapse, so smart output
-  can slightly exceed it. Known boundary; the absolute cost is a few hundred
-  chars. For extreme savings on content pages, use `evaluate` to read
-  specific sections.
+- **Medium (18–48%)**: video / search / long-doc — nav chains collapsed and
+  redundant text folded; long-doc body text is intentionally kept for the
+  agent to read (read specific sections via `evaluate` for extreme savings).
+- **Low (8–10%)**: GitHub / Google — official interestingOnly already trimmed
+  most junk; the page is small so savings are bounded.
 
 Combined with snapshot_diff, a 30-step agent session on an interactive page
 consumes roughly 15–20% of the tokens of repeated full take_snapshot calls.
