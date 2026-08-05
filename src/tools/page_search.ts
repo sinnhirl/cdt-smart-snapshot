@@ -84,8 +84,10 @@ export async function handlePageSearch(
     );
 
     if (hits.length === 0) {
+      // Index is non-empty here (requireSnapshotUidIndex returned it); the
+      // keyword simply matched nothing. Don't tell the user to snapshot again.
       return textResult(
-        `No matches for "${parsed.keyword}" in the current snapshot. (Call smart_snapshot first if the index is empty.)`,
+        `No matches for "${parsed.keyword}" in the current snapshot.`,
       );
     }
 

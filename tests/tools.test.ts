@@ -489,6 +489,9 @@ describe('tools', () => {
     const result = await handlePageSearch({keyword: 'zzznomatch'});
     const text = result.content[0]?.text ?? '';
     expect(text).toContain('No matches');
+    // ROUND4 long-test fix: with a non-empty index, a miss must NOT tell the
+    // user to snapshot again — the index is already populated.
+    expect(text).not.toContain('Call smart_snapshot first');
   });
 
   it('pageSearchShouldTruncateWithMoreLineWhenMaxResultsExceeded', async () => {
