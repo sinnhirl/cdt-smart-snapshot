@@ -116,8 +116,9 @@ async function establishConnection(): Promise<Browser> {
       return browser;
     } catch (secondErr) {
       const msg = errorMessage(secondErr);
+      const firstMsg = errorMessage(firstErr);
       const endpoint = config.wsEndpoint ?? config.browserURL;
-      connectError = `Failed to connect to browser at ${endpoint}: ${msg}`;
+      connectError = `Failed to connect to browser at ${endpoint}: ${msg} (first attempt: ${firstMsg})`;
       throw new Error(connectError, {cause: firstErr});
     }
   }
@@ -132,6 +133,15 @@ async function establishConnection(): Promise<Browser> {
 export async function connectBrowser(): Promise<Browser> {
   if (browserInstance !== undefined && browserInstance.connected) {
     return browserInstance;
+  }
+
+  if (browserInstance !== undefined && !browserInstance.connected) {
+    try {
+      await browserInstance.disconnect();
+    } catch {
+      // Stale handle may already be torn down.
+    }
+    clearBrowserInstance();
   }
 
   if (pendingConnect !== undefined) {
@@ -163,8 +173,7 @@ export function getLastConnectError(): string | undefined {
 export async function disconnectBrowser(): Promise<void> {
   if (browserInstance !== undefined) {
     try {
-      // disconnect() returns a promise; cleanup is fire-and-forget here.
-      void browserInstance.disconnect();
+      await browserInstance.disconnect();
     } catch {
       // ignore disconnect errors during cleanup
     }
@@ -278,6 +287,23 @@ interface EvaluatedGeometry {
 }
 
 /**
+ * Minimal structural shape walkAxForVisibility needs from an AX node.
+ *
+ * Why: puppeteer's SerializedAXNode exposes elementHandle(): Promise<ElementHandle>
+ * whose full type has private fields — impossible to mock in tests without banned
+ * `as` assertions. Defining the structural slice we actually call keeps the walk
+ * testable and lets a real SerializedAXNode satisfy it structurally.
+ */
+export interface VisibilityAxNode {
+  backendNodeId?: number;
+  children?: VisibilityAxNode[];
+  elementHandle(): Promise<{
+    evaluate<T>(fn: (el: Element) => T): Promise<T>;
+    dispose(): Promise<void>;
+  } | null>;
+}
+
+/**
  * Collects visibility info for every AX node that has a backendNodeId.
  *
  * Why: Batching via elementHandle().evaluate keeps core pure while still using
@@ -288,7 +314,7 @@ interface EvaluatedGeometry {
  * @throws Never throws for individual node failures; skips nodes that error.
  */
 export async function collectVisibilityByBackendId(
-  axRoot: SerializedAXNode,
+  axRoot: VisibilityAxNode,
 ): Promise<Map<number, ElementVisibilityInfo>> {
   const map = new Map<number, ElementVisibilityInfo>();
   await walkAxForVisibility(axRoot, map);
@@ -302,7 +328,7 @@ export async function collectVisibilityByBackendId(
  * @param map - Accumulator keyed by backendNodeId.
  */
 async function walkAxForVisibility(
-  node: SerializedAXNode,
+  node: VisibilityAxNode,
   map: Map<number, ElementVisibilityInfo>,
 ): Promise<void> {
   // backendNodeId is not part of the public SerializedAXNode type; narrow it
@@ -311,42 +337,47 @@ async function walkAxForVisibility(
     try {
       const handle = await node.elementHandle();
       if (handle !== null) {
-        const geo: EvaluatedGeometry = await handle.evaluate(el => {
-          const style = window.getComputedStyle(el);
-          const rect = el.getBoundingClientRect();
-          return {
-            display: style.display,
-            visibility: style.visibility,
-            opacity: Number(style.opacity),
-            top: rect.top,
-            left: rect.left,
-            bottom: rect.bottom,
-            right: rect.right,
-            width: rect.width,
-            height: rect.height,
-            viewportWidth: window.innerWidth,
-            viewportHeight: window.innerHeight,
-          };
-        });
-        map.set(node.backendNodeId, {
-          display: geo.display,
-          visibility: geo.visibility,
-          opacity: geo.opacity,
-          rect: {
-            top: geo.top,
-            left: geo.left,
-            bottom: geo.bottom,
-            right: geo.right,
-            width: geo.width,
-            height: geo.height,
-          },
-          viewportWidth: geo.viewportWidth,
-          viewportHeight: geo.viewportHeight,
-        });
-        await handle.dispose();
+        try {
+          const geo: EvaluatedGeometry = await handle.evaluate(el => {
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return {
+              display: style.display,
+              visibility: style.visibility,
+              opacity: Number(style.opacity),
+              top: rect.top,
+              left: rect.left,
+              bottom: rect.bottom,
+              right: rect.right,
+              width: rect.width,
+              height: rect.height,
+              viewportWidth: window.innerWidth,
+              viewportHeight: window.innerHeight,
+            };
+          });
+          map.set(node.backendNodeId, {
+            display: geo.display,
+            visibility: geo.visibility,
+            opacity: geo.opacity,
+            rect: {
+              top: geo.top,
+              left: geo.left,
+              bottom: geo.bottom,
+              right: geo.right,
+              width: geo.width,
+              height: geo.height,
+            },
+            viewportWidth: geo.viewportWidth,
+            viewportHeight: geo.viewportHeight,
+          });
+        } catch {
+          // Skip nodes whose handles are stale; treat as unknown visibility.
+        } finally {
+          await handle.dispose();
+        }
       }
     } catch {
-      // Skip nodes whose handles are stale; treat as unknown visibility.
+      // elementHandle() failed; treat as unknown visibility.
     }
   }
   if (node.children !== undefined) {

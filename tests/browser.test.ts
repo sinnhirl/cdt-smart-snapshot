@@ -95,4 +95,67 @@ describe('browser connect', () => {
     expect(connectMock).toHaveBeenCalledTimes(2);
     expect(second).toBe(mockBrowser2);
   });
+
+  it('shouldDisconnectStaleBrowserBeforeReconnectWhenNotConnected', async () => {
+    const stale = makeMockBrowser();
+    connectMock.mockResolvedValueOnce(stale);
+
+    const {connectBrowser} = await import('../src/browser.js');
+    await connectBrowser();
+    stale.connected = false;
+    const disconnectSpy = vi.spyOn(stale, 'disconnect');
+
+    const fresh = makeMockBrowser();
+    connectMock.mockResolvedValueOnce(fresh);
+    const reconnected = await connectBrowser();
+
+    expect(disconnectSpy).toHaveBeenCalledTimes(1);
+    expect(connectMock).toHaveBeenCalledTimes(2);
+    expect(reconnected).toBe(fresh);
+  });
+
+  it('shouldAwaitDisconnectBeforeClearingSingleton', async () => {
+    let disconnected = false;
+    const mockBrowser = makeMockBrowser();
+    mockBrowser.disconnect = async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 10);
+      });
+      disconnected = true;
+      mockBrowser.connected = false;
+    };
+    connectMock.mockResolvedValue(mockBrowser);
+
+    const {connectBrowser, disconnectBrowser} =
+      await import('../src/browser.js');
+    await connectBrowser();
+    await disconnectBrowser();
+    expect(disconnected).toBe(true);
+    expect(mockBrowser.connected).toBe(false);
+  });
+});
+
+describe('walkAx visibility dispose', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('shouldDisposeElementHandleWhenEvaluateThrows', async () => {
+    const disposeMock = vi.fn(async () => undefined);
+    const axNode = {
+      role: 'button',
+      name: 'X',
+      backendNodeId: 7,
+      elementHandle: async () => ({
+        evaluate: async () => {
+          throw new Error('evaluate failed');
+        },
+        dispose: disposeMock,
+      }),
+    };
+    const {collectVisibilityByBackendId} = await import('../src/browser.js');
+    const map = await collectVisibilityByBackendId(axNode);
+    expect(map.size).toBe(0);
+    expect(disposeMock).toHaveBeenCalledTimes(1);
+  });
 });
