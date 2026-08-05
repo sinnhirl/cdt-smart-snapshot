@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.2...v0.1.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* browser lifecycle round2 ([#6](https://github.com/sinnhirl/cdt-smart-snapshot/issues/6) [#10](https://github.com/sinnhirl/cdt-smart-snapshot/issues/10) [#11](https://github.com/sinnhirl/cdt-smart-snapshot/issues/11)) ([98f9b2f](https://github.com/sinnhirl/cdt-smart-snapshot/commit/98f9b2f4f88e9852e78b5aeb380d467aae39ff48))
+* diff round2 ([#4](https://github.com/sinnhirl/cdt-smart-snapshot/issues/4) [#7](https://github.com/sinnhirl/cdt-smart-snapshot/issues/7) [#8](https://github.com/sinnhirl/cdt-smart-snapshot/issues/8)) ([17d85af](https://github.com/sinnhirl/cdt-smart-snapshot/commit/17d85aff2caf10a7f2fc1f15ea32bc7490bfbc02))
+* tools & metadata round2 ([#5](https://github.com/sinnhirl/cdt-smart-snapshot/issues/5) [#9](https://github.com/sinnhirl/cdt-smart-snapshot/issues/9) [#12](https://github.com/sinnhirl/cdt-smart-snapshot/issues/12) [#13](https://github.com/sinnhirl/cdt-smart-snapshot/issues/13) [#14](https://github.com/sinnhirl/cdt-smart-snapshot/issues/14) [#15](https://github.com/sinnhirl/cdt-smart-snapshot/issues/15) [#16](https://github.com/sinnhirl/cdt-smart-snapshot/issues/16)) ([dc0eba0](https://github.com/sinnhirl/cdt-smart-snapshot/commit/dc0eba080cc8f783679ab0753fc8f740b0832329))
+* visibility pipeline round2 ([#1](https://github.com/sinnhirl/cdt-smart-snapshot/issues/1)-[#3](https://github.com/sinnhirl/cdt-smart-snapshot/issues/3)) ([700ffe6](https://github.com/sinnhirl/cdt-smart-snapshot/commit/700ffe6008a30a4876c90b20a1ec16ea4d110289))
+
 ## [0.1.2](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.1...v0.1.2) (2026-08-05)
 
 
