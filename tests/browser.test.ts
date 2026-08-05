@@ -159,3 +159,125 @@ describe('walkAx visibility dispose', () => {
     expect(disposeMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('page diagnostics', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  /**
+   * Builds a mock browser whose pages() returns a single page with an
+   * `on` method that records handlers by event name.
+   */
+  function makeDiagnosticsBrowser(handlers: Record<string, Array<(arg: unknown) => void>>): MockBrowserHandle & {
+    pages: () => Promise<Array<{url: () => string; on: (event: string, handler: (arg: unknown) => void) => void}>>;
+  } {
+    const base = makeMockBrowser();
+    // One stable page object across calls — getActivePage's attachPageDiagnostics
+    // dedupes by identity (Set), so the same object must be returned every time.
+    const page = {
+      url: () => 'https://example.com',
+      on: (event: string, handler: (arg: unknown) => void) => {
+        const list = handlers[event];
+        if (list !== undefined) {
+          list.push(handler);
+        }
+      },
+    };
+    return {
+      ...base,
+      pages: async () => [page],
+    };
+  }
+
+  it('shouldAttachPageDiagnosticsOnlyOncePerPage', async () => {
+    const handlers: Record<string, Array<(arg: unknown) => void>> = {
+      console: [],
+      pageerror: [],
+      requestfailed: [],
+    };
+    connectMock.mockResolvedValue(makeDiagnosticsBrowser(handlers));
+
+    const {getActivePage, resetDiagnosticsAttachmentState} =
+      await import('../src/browser.js');
+    resetDiagnosticsAttachmentState();
+    // First getActivePage attaches listeners on the active page.
+    await getActivePage();
+    const attachedOnce = {
+      console: handlers.console.length,
+      pageerror: handlers.pageerror.length,
+      requestfailed: handlers.requestfailed.length,
+    };
+    // Second call must not duplicate listeners.
+    await getActivePage();
+    expect(handlers.console.length).toBe(attachedOnce.console);
+    expect(handlers.pageerror.length).toBe(attachedOnce.pageerror);
+    expect(handlers.requestfailed.length).toBe(attachedOnce.requestfailed);
+    expect(attachedOnce.console).toBe(1);
+  });
+
+  it('shouldAccumulateAndClearPageDiagnostics', async () => {
+    const handlers: Record<string, Array<(arg: unknown) => void>> = {
+      console: [],
+      pageerror: [],
+      requestfailed: [],
+    };
+    connectMock.mockResolvedValue(makeDiagnosticsBrowser(handlers));
+
+    const {getActivePage, getPageDiagnostics, clearPageDiagnostics} =
+      await import('../src/browser.js');
+    await getActivePage();
+    const consoleHandler = handlers.console[0];
+    expect(consoleHandler).toBeDefined();
+    if (consoleHandler !== undefined) {
+      consoleHandler({
+        type: () => 'error',
+        text: () => 'boom',
+      });
+    }
+    const {page} = await getActivePage();
+    const diag = getPageDiagnostics(page, 5);
+    expect(diag.consoleErrors.length).toBe(1);
+    expect(diag.consoleErrors[0]?.message).toBe('boom');
+    clearPageDiagnostics(page);
+    const afterClear = getPageDiagnostics(page, 5);
+    expect(afterClear.consoleErrors.length).toBe(0);
+  });
+
+  it('shouldResetDiagnosticsAttachmentOnDisconnect', async () => {
+    const mockBrowser = makeMockBrowser();
+    connectMock.mockResolvedValue(mockBrowser);
+
+    const handlers: Record<string, Array<(arg: unknown) => void>> = {
+      console: [],
+      pageerror: [],
+      requestfailed: [],
+    };
+    const page = {
+      url: () => 'https://example.com',
+      on: (event: string, handler: (arg: unknown) => void) => {
+        const list = handlers[event];
+        if (list !== undefined) {
+          list.push(handler);
+        }
+      },
+    };
+    const browserWithPages = {
+      ...mockBrowser,
+      pages: async () => [page],
+    };
+    connectMock.mockResolvedValue(browserWithPages);
+
+    const {connectBrowser, disconnectBrowser, getActivePage} =
+      await import('../src/browser.js');
+    await connectBrowser();
+    await getActivePage();
+    expect(handlers.console.length).toBe(1);
+    await disconnectBrowser();
+    handlers.console.length = 0;
+    connectMock.mockResolvedValue(browserWithPages);
+    await connectBrowser();
+    await getActivePage();
+    expect(handlers.console.length).toBe(1);
+  });
+});

@@ -180,6 +180,7 @@ export async function disconnectBrowser(): Promise<void> {
     clearBrowserInstance();
   }
   pendingConnect = undefined;
+  resetDiagnosticsAttachmentState();
 }
 
 /**
@@ -218,6 +219,7 @@ export async function getActivePage(): Promise<ActivePage> {
       'No active page available (all pages are blank or DevTools)',
     );
   }
+  attachPageDiagnostics(page);
   return {page, url: page.url()};
 }
 
@@ -500,4 +502,495 @@ export async function takeScreenshotToPath(
     });
   }
   return filePath;
+}
+
+/**
+ * Live DOM facts for one backend node (filled via CDP resolve + callFunctionOn).
+ */
+export interface DomNodeState {
+  tagName: string;
+  cssSelector: string;
+  value?: string;
+  checked?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
+  textContent?: string;
+  rect?: {top: number; left: number; width: number; height: number};
+  visible: boolean;
+}
+
+/**
+ * One buffered console / pageerror / failed-request line.
+ */
+export interface DiagnosticEntry {
+  message: string;
+  level: 'error' | 'warn' | 'log' | 'pageerror' | 'request';
+  timestampMs: number;
+  url?: string;
+}
+
+/**
+ * Aggregated diagnostics returned to page_status.
+ */
+export interface PageDiagnostics {
+  consoleErrors: DiagnosticEntry[];
+  pageExceptions: DiagnosticEntry[];
+  failedRequests: DiagnosticEntry[];
+}
+
+const DIAGNOSTICS_CAP = 20;
+const diagnosticsAttached = new Set<Page>();
+const diagnosticsByPage = new WeakMap<
+  Page,
+  {
+    console: DiagnosticEntry[];
+    pageExceptions: DiagnosticEntry[];
+    failedRequests: DiagnosticEntry[];
+  }
+>();
+
+/**
+ * Reads objectId from a DOM.resolveNode CDP payload.
+ *
+ * @param value - CDP response body.
+ * @returns objectId or undefined.
+ */
+function readResolveObjectId(value: unknown): string | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  if (!('object' in value)) {
+    return undefined;
+  }
+  const obj = value.object;
+  if (typeof obj !== 'object' || obj === null) {
+    return undefined;
+  }
+  if (!('objectId' in obj)) {
+    return undefined;
+  }
+  const objectId = obj.objectId;
+  if (typeof objectId === 'string') {
+    return objectId;
+  }
+  return undefined;
+}
+
+/**
+ * Reads a callFunctionOn return value when returnByValue is true.
+ *
+ * @param value - CDP response body.
+ * @returns Parsed value or undefined.
+ */
+function readCallFunctionValue(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  if (!('result' in value)) {
+    return undefined;
+  }
+  const result = value.result;
+  if (typeof result !== 'object' || result === null) {
+    return undefined;
+  }
+  if (!('value' in result)) {
+    return undefined;
+  }
+  return result.value;
+}
+
+/**
+ * Pushes into a ring buffer capped at DIAGNOSTICS_CAP.
+ *
+ * @param buffer - Mutable array.
+ * @param entry - New entry.
+ */
+function pushRing(buffer: DiagnosticEntry[], entry: DiagnosticEntry): void {
+  buffer.push(entry);
+  while (buffer.length > DIAGNOSTICS_CAP) {
+    buffer.shift();
+  }
+}
+
+/**
+ * Returns (or creates) the diagnostics buffer for a page.
+ *
+ * @param page - Puppeteer page.
+ * @returns Buffer object.
+ */
+function diagnosticsBufferFor(page: Page): {
+  console: DiagnosticEntry[];
+  pageExceptions: DiagnosticEntry[];
+  failedRequests: DiagnosticEntry[];
+} {
+  let buf = diagnosticsByPage.get(page);
+  if (buf === undefined) {
+    buf = {console: [], pageExceptions: [], failedRequests: []};
+    diagnosticsByPage.set(page, buf);
+  }
+  return buf;
+}
+
+/**
+ * Attaches console/pageerror/requestfailed listeners once per page.
+ *
+ * Why: Reconnecting must not duplicate listeners (ROUND2 lesson); Set tracks
+ * pages already wired so getActivePage can lazily attach.
+ *
+ * @param page - Puppeteer page.
+ * @returns void
+ * @throws Never throws.
+ */
+export function attachPageDiagnostics(page: Page): void {
+  if (diagnosticsAttached.has(page)) {
+    return;
+  }
+  diagnosticsAttached.add(page);
+  const buf = diagnosticsBufferFor(page);
+
+  page.on('console', msg => {
+    const type = msg.type();
+    if (type !== 'error' && type !== 'warn') {
+      return;
+    }
+    const level = type === 'warn' ? 'warn' : 'error';
+    pushRing(buf.console, {
+      message: msg.text(),
+      level,
+      timestampMs: Date.now(),
+    });
+  });
+
+  page.on('pageerror', err => {
+    const message = err instanceof Error ? err.message : String(err);
+    pushRing(buf.pageExceptions, {
+      message,
+      level: 'pageerror',
+      timestampMs: Date.now(),
+    });
+  });
+
+  page.on('requestfailed', req => {
+    const failure = req.failure();
+    const reason =
+      failure !== null && failure.errorText.length > 0
+        ? failure.errorText
+        : 'failed';
+    pushRing(buf.failedRequests, {
+      message: `${req.method()} ${req.url()} → ${reason}`,
+      level: 'request',
+      timestampMs: Date.now(),
+      url: req.url(),
+    });
+  });
+}
+
+/**
+ * Returns recent diagnostic entries for page_status.
+ *
+ * @param page - Puppeteer page.
+ * @param limit - Max entries per category (default 5).
+ * @returns Recent console errors, exceptions, and failed requests.
+ * @throws Never throws.
+ */
+export function getPageDiagnostics(
+  page: Page,
+  limit = 5,
+): PageDiagnostics {
+  attachPageDiagnostics(page);
+  const buf = diagnosticsBufferFor(page);
+  const take = (entries: DiagnosticEntry[]): DiagnosticEntry[] => {
+    if (entries.length <= limit) {
+      return [...entries];
+    }
+    return entries.slice(entries.length - limit);
+  };
+  return {
+    consoleErrors: take(buf.console),
+    pageExceptions: take(buf.pageExceptions),
+    failedRequests: take(buf.failedRequests),
+  };
+}
+
+/**
+ * Clears accumulated diagnostics for a page.
+ *
+ * @param page - Puppeteer page.
+ * @returns void
+ * @throws Never throws.
+ */
+export function clearPageDiagnostics(page: Page): void {
+  const buf = diagnosticsByPage.get(page);
+  if (buf === undefined) {
+    return;
+  }
+  buf.console.length = 0;
+  buf.pageExceptions.length = 0;
+  buf.failedRequests.length = 0;
+}
+
+/**
+ * Clears attach tracking (called from disconnectBrowser).
+ *
+ * @returns void
+ * @throws Never throws.
+ */
+export function resetDiagnosticsAttachmentState(): void {
+  diagnosticsAttached.clear();
+}
+
+/**
+ * CDP function body: read tagName, form state, geometry, selector.
+ */
+const DOM_STATE_READER_FUNCTION = String.raw`function() {
+  const el = this;
+  if (!el || el.nodeType !== 1) return null;
+  const countMatches = (selector) => document.querySelectorAll(selector).length;
+  const firstUnique = (candidates) => {
+    for (const sel of candidates) {
+      if (sel.length > 0 && countMatches(sel) === 1) return sel;
+    }
+    return '';
+  };
+  const buildSelector = () => {
+    const testId = el.getAttribute('data-testid');
+    if (testId) {
+      const hit = firstUnique(['[data-testid="' + testId + '"]']);
+      if (hit) return hit;
+    }
+    if (el.id) {
+      const hit = firstUnique(['#' + el.id]);
+      if (hit) return hit;
+    }
+    const classSegments = [];
+    let current = el;
+    while (current) {
+      const tag = current.tagName.toLowerCase();
+      let cls = '';
+      for (const name of current.classList) {
+        if (name) cls += '.' + name;
+      }
+      classSegments.unshift(tag + cls);
+      current = current.parentElement;
+    }
+    const classChain = classSegments.join(' > ');
+    if (classChain) {
+      const hit = firstUnique([classChain]);
+      if (hit) return hit;
+    }
+    const tagHit = firstUnique([el.tagName.toLowerCase()]);
+    if (tagHit) return tagHit;
+    const nthSegments = [];
+    current = el;
+    while (current) {
+      const tag = current.tagName.toLowerCase();
+      let nth = 1;
+      const parent = current.parentElement;
+      if (parent) {
+        for (const sibling of parent.children) {
+          if (sibling.tagName === current.tagName) {
+            if (sibling === current) break;
+            nth += 1;
+          }
+        }
+      }
+      nthSegments.unshift(tag + ':nth-of-type(' + nth + ')');
+      current = current.parentElement;
+    }
+    return firstUnique([nthSegments.join(' > ')]);
+  };
+  const rect = el.getBoundingClientRect();
+  let text = el.textContent || '';
+  if (text.length > 200) text = text.slice(0, 200) + '…';
+  const out = {
+    tagName: el.tagName.toLowerCase(),
+    visible: !!(el.offsetParent || (rect.width > 0 && rect.height > 0)),
+    cssSelector: buildSelector(),
+    textContent: text || undefined,
+    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
+  };
+  if (el instanceof HTMLInputElement) {
+    if (el.value) out.value = el.value;
+    if (el.type === 'checkbox' || el.type === 'radio') out.checked = el.checked;
+    if (el.placeholder) out.placeholder = el.placeholder;
+    out.disabled = el.disabled;
+  } else if (el instanceof HTMLTextAreaElement) {
+    if (el.value) out.value = el.value;
+    if (el.placeholder) out.placeholder = el.placeholder;
+    out.disabled = el.disabled;
+  } else if (el instanceof HTMLSelectElement) {
+    out.value = el.value;
+    out.disabled = el.disabled;
+  } else if (el.hasAttribute && el.hasAttribute('disabled')) {
+    out.disabled = true;
+  }
+  return out;
+}`;
+
+/**
+ * Resolves backendNodeId to objectId via CDP DOM.resolveNode.
+ *
+ * @param page - Puppeteer page.
+ * @param backendNodeId - Chromium backend node id.
+ * @returns objectId or undefined when stale / missing.
+ */
+async function resolveBackendNodeObjectId(
+  page: Page,
+  backendNodeId: number,
+): Promise<string | undefined> {
+  try {
+    const client = await page.createCDPSession();
+    await client.send('DOM.enable');
+    const resolved: unknown = await client.send('DOM.resolveNode', {
+      backendNodeId,
+    });
+    return readResolveObjectId(resolved);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Queries live DOM state for a snapshot backendNodeId.
+ *
+ * Why: checked/placeholder are not in the AX snapshot; CDP resolve survives
+ * until navigation invalidates backend ids.
+ *
+ * @param page - Puppeteer page.
+ * @param backendNodeId - Chromium backend node id from the AX tree.
+ * @returns DOM facts or undefined when the node cannot be resolved.
+ * @throws Never throws — failures become undefined for tool-layer fallbacks.
+ */
+export async function queryDomByBackendNodeId(
+  page: Page,
+  backendNodeId: number,
+): Promise<DomNodeState | undefined> {
+  const objectId = await resolveBackendNodeObjectId(page, backendNodeId);
+  if (objectId === undefined) {
+    return undefined;
+  }
+  try {
+    const client = await page.createCDPSession();
+    const raw: unknown = await client.send('Runtime.callFunctionOn', {
+      objectId,
+      functionDeclaration: DOM_STATE_READER_FUNCTION,
+      returnByValue: true,
+    });
+    const value = readCallFunctionValue(raw);
+    if (typeof value !== 'object' || value === null) {
+      return undefined;
+    }
+    return parseDomNodeState(value);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Parses callFunctionOn JSON into DomNodeState.
+ *
+ * @param value - Plain object from the browser.
+ * @returns DomNodeState or undefined when shape is invalid.
+ */
+function parseDomNodeState(value: object): DomNodeState | undefined {
+  if (!('tagName' in value) || typeof value.tagName !== 'string') {
+    return undefined;
+  }
+  if (!('visible' in value) || typeof value.visible !== 'boolean') {
+    return undefined;
+  }
+  if (!('cssSelector' in value) || typeof value.cssSelector !== 'string') {
+    return undefined;
+  }
+  const state: DomNodeState = {
+    tagName: value.tagName,
+    cssSelector: value.cssSelector,
+    visible: value.visible,
+  };
+  if ('value' in value && typeof value.value === 'string') {
+    state.value = value.value;
+  }
+  if ('checked' in value && typeof value.checked === 'boolean') {
+    state.checked = value.checked;
+  }
+  if ('placeholder' in value && typeof value.placeholder === 'string') {
+    state.placeholder = value.placeholder;
+  }
+  if ('disabled' in value && typeof value.disabled === 'boolean') {
+    state.disabled = value.disabled;
+  }
+  if ('textContent' in value && typeof value.textContent === 'string') {
+    state.textContent = value.textContent;
+  }
+  if ('rect' in value && typeof value.rect === 'object' && value.rect !== null) {
+    const rect = value.rect;
+    if (
+      'top' in rect &&
+      typeof rect.top === 'number' &&
+      'left' in rect &&
+      typeof rect.left === 'number' &&
+      'width' in rect &&
+      typeof rect.width === 'number' &&
+      'height' in rect &&
+      typeof rect.height === 'number'
+    ) {
+      state.rect = {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+  }
+  return state;
+}
+
+/**
+ * Builds a unique CSS selector for a backend node id.
+ *
+ * @param page - Puppeteer page.
+ * @param backendNodeId - Chromium backend node id.
+ * @returns Selector string or undefined when not uniquely resolvable.
+ * @throws Never throws.
+ */
+export async function elementToSelector(
+  page: Page,
+  backendNodeId: number,
+): Promise<string | undefined> {
+  const dom = await queryDomByBackendNodeId(page, backendNodeId);
+  if (dom === undefined) {
+    return undefined;
+  }
+  if (dom.cssSelector.length === 0) {
+    return undefined;
+  }
+  return dom.cssSelector;
+}
+
+/**
+ * Reads document readyState and a simplified loading flag.
+ *
+ * @param page - Puppeteer page.
+ * @returns URL, title, readyState, loading.
+ * @throws When evaluate fails.
+ */
+export async function readPageLifecycle(page: Page): Promise<{
+  url: string;
+  title: string;
+  readyState: string;
+  loading: boolean;
+}> {
+  attachPageDiagnostics(page);
+  const title = await page.title();
+  const evaluated = await page.evaluate(() => {
+    const rs = document.readyState;
+    const loading = rs === 'loading' || rs === 'interactive';
+    return {readyState: rs, loading};
+  });
+  return {
+    url: page.url(),
+    title,
+    readyState: evaluated.readyState,
+    loading: evaluated.loading,
+  };
 }
