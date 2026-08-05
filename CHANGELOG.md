@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.5...v0.1.6) (2026-08-05)
+
+
+### Bug Fixes
+
+* fold redundant text children under self-labeling controls (ROUND3-2) ([ed2daf4](https://github.com/sinnhirl/cdt-smart-snapshot/commit/ed2daf4d4e37a6f4c1610a16d8bbb98da10150e7))
+
 ## [0.1.5](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.4...v0.1.5) (2026-08-05)
 
 
