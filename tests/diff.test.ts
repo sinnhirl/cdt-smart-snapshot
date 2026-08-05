@@ -33,7 +33,7 @@ function node(
   extras?: Partial<
     Pick<
       TextSnapshotNode,
-      'value' | 'count' | 'collapsed' | 'childCount' | 'visible'
+      'value' | 'count' | 'collapsed' | 'childCount' | 'visible' | 'offscreen'
     >
   >,
 ): TextSnapshotNode {
@@ -53,6 +53,9 @@ function node(
     }
     if (extras.visible !== undefined) {
       n.visible = extras.visible;
+    }
+    if (extras.offscreen !== undefined) {
+      n.offscreen = extras.offscreen;
     }
   }
   return n;
@@ -173,41 +176,49 @@ describe('diff', () => {
     expect(text).toContain('[Document] example.com');
   });
 
-  it('shouldReportChangedWhenCountDiffers', () => {
+  it('shouldNotReportChangedWhenOnlyDedupeCountDiffersOnDiffRoot', () => {
     const prev = node(1, 'main', 'Main', [
-      node(2, 'link', 'Item', [], {count: 1}),
+      node(2, 'link', 'Item', [], {visible: true}),
     ]);
     const curr = node(1, 'main', 'Main', [
-      node(2, 'link', 'Item', [], {count: 3}),
+      node(2, 'link', 'Item', [], {count: 3, visible: true}),
+    ]);
+    const result = computeDiff(prev, curr);
+    expect(result.entries).toHaveLength(0);
+  });
+
+  it('shouldReportChangedWhenOffscreenDiffersWithIncludeHidden', () => {
+    const prev = node(1, 'main', 'Main', [
+      node(2, 'link', 'Fold', [], {visible: true, offscreen: false}),
+    ]);
+    const curr = node(1, 'main', 'Main', [
+      node(2, 'link', 'Fold', [], {visible: true, offscreen: true}),
     ]);
     const result = computeDiff(prev, curr);
     const changed = result.entries.find(e => e.kind === 'changed');
     expect(changed).toBeDefined();
     if (changed !== undefined) {
-      expect(changed.detail).toContain('count');
+      expect(changed.detail).toContain('offscreen');
     }
   });
 
-  it('shouldReportChangedWhenCollapsedStateDiffers', () => {
+  it('shouldInterleaveRemovalBetweenChangedSiblingsInDomOrder', () => {
     const prev = node(1, 'main', 'Main', [
-      node(2, 'article', 'Section', [node(3, 'link', 'Inner')], {
-        collapsed: false,
-      }),
+      node(2, 'link', 'A'),
+      node(3, 'link', 'B'),
+      node(4, 'link', 'C'),
     ]);
     const curr = node(1, 'main', 'Main', [
-      node(2, 'article', 'Section', [], {
-        collapsed: true,
-        childCount: 1,
-      }),
+      node(2, 'link', 'A2'),
+      node(4, 'link', 'C'),
     ]);
     const result = computeDiff(prev, curr);
-    const changed = result.entries.find(
-      e => e.kind === 'changed' && e.node.uid === 2,
-    );
-    expect(changed).toBeDefined();
-    if (changed !== undefined) {
-      expect(changed.detail).toContain('collapsed');
-    }
+    const names = result.entries.map(e => e.node.name);
+    const idxA2 = names.indexOf('A2');
+    const idxB = names.indexOf('B');
+    expect(idxA2).toBeGreaterThanOrEqual(0);
+    expect(idxB).toBeGreaterThanOrEqual(0);
+    expect(idxA2).toBeLessThan(idxB);
   });
 
   it('shouldOmitPromotedRoleFromDiffContext', () => {

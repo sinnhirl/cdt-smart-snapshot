@@ -87,8 +87,9 @@ export function buildUidMap(
 /**
  * Returns true when two nodes are considered identical for diff purposes.
  *
- * Why: role/name/value/visible equality matches what the agent sees in the text
- * tree; ignoring children here because structural adds/removes are reported separately.
+ * Why: role/name/value/visible/offscreen equality matches what the agent sees.
+ * Dedupe counts and collapse summaries live on the formatted display tree only;
+ * diffRoot is pre-dedupe so count/collapsed/childCount are not compared here.
  *
  * @param a - Previous node.
  * @param b - Current node.
@@ -101,9 +102,7 @@ export function nodesEqual(a: TextSnapshotNode, b: TextSnapshotNode): boolean {
     a.name === b.name &&
     a.value === b.value &&
     a.visible === b.visible &&
-    a.count === b.count &&
-    a.collapsed === b.collapsed &&
-    a.childCount === b.childCount
+    a.offscreen === b.offscreen
   );
 }
 
@@ -136,17 +135,9 @@ function changeDetail(
   if (prev.visible !== curr.visible) {
     parts.push(`visible ${String(prev.visible)} → ${String(curr.visible)}`);
   }
-  if (prev.count !== curr.count) {
-    parts.push(`count ${String(prev.count ?? 1)} → ${String(curr.count ?? 1)}`);
-  }
-  if (prev.collapsed !== curr.collapsed) {
+  if (prev.offscreen !== curr.offscreen) {
     parts.push(
-      `collapsed ${String(prev.collapsed)} → ${String(curr.collapsed)}`,
-    );
-  }
-  if (prev.childCount !== curr.childCount) {
-    parts.push(
-      `childCount ${String(prev.childCount ?? 0)} → ${String(curr.childCount ?? 0)}`,
+      `offscreen ${String(prev.offscreen)} → ${String(curr.offscreen)}`,
     );
   }
   if (prevParentUid !== currParentUid) {
@@ -158,11 +149,113 @@ function changeDetail(
 }
 
 /**
+ * Emits add/change/removal entries for one pair of sibling lists in DOM order.
+ *
+ * Why: SPEC §5.6 requires removals interleaved at the parent's child position,
+ * not batched after all additions — agents locate deltas by sibling context.
+ *
+ * @param prevChildren - Previous sibling list.
+ * @param currChildren - Current sibling list.
+ * @param prevMap - Full previous uid map.
+ * @param currMap - Full current uid map.
+ * @param prevParentMap - Previous parent links.
+ * @param currParentMap - Current parent links.
+ * @param entries - Output accumulator.
+ * @returns void
+ * @throws Never throws.
+ */
+function diffChildrenInDomOrder(
+  prevChildren: TextSnapshotNode[],
+  currChildren: TextSnapshotNode[],
+  prevMap: Map<number, TextSnapshotNode>,
+  currMap: Map<number, TextSnapshotNode>,
+  prevParentMap: Map<number, TextSnapshotNode>,
+  currParentMap: Map<number, TextSnapshotNode>,
+  entries: DiffEntry[],
+): void {
+  const currUidSet = new Set<number>();
+  for (const c of currChildren) {
+    currUidSet.add(c.uid);
+  }
+
+  let pi = 0;
+  let ci = 0;
+
+  while (ci < currChildren.length) {
+    const currChild = currChildren[ci];
+    if (currChild === undefined) {
+      break;
+    }
+
+    while (pi < prevChildren.length) {
+      const prevChild = prevChildren[pi];
+      if (prevChild === undefined) {
+        break;
+      }
+      if (prevChild.uid === currChild.uid) {
+        break;
+      }
+      if (!currUidSet.has(prevChild.uid)) {
+        entries.push({kind: 'removed', node: prevChild});
+        pi += 1;
+        continue;
+      }
+      pi += 1;
+    }
+
+    const prevNode = prevMap.get(currChild.uid);
+    const prevParentUid = prevParentMap.get(currChild.uid)?.uid;
+    const currParentUid = currParentMap.get(currChild.uid)?.uid;
+    const parentChanged = prevParentUid !== currParentUid;
+    if (prevNode === undefined) {
+      entries.push({kind: 'added', node: currChild});
+    } else if (!nodesEqual(prevNode, currChild) || parentChanged) {
+      entries.push({
+        kind: 'changed',
+        node: currChild,
+        previous: prevNode,
+        detail: changeDetail(prevNode, currChild, prevParentUid, currParentUid),
+      });
+    }
+
+    const prevForRecurse = prevNode === undefined ? [] : prevNode.children;
+    diffChildrenInDomOrder(
+      prevForRecurse,
+      currChild.children,
+      prevMap,
+      currMap,
+      prevParentMap,
+      currParentMap,
+      entries,
+    );
+
+    if (pi < prevChildren.length) {
+      const atPi = prevChildren[pi];
+      if (atPi !== undefined && atPi.uid === currChild.uid) {
+        pi += 1;
+      }
+    }
+    ci += 1;
+  }
+
+  while (pi < prevChildren.length) {
+    const prevChild = prevChildren[pi];
+    if (prevChild === undefined) {
+      break;
+    }
+    if (!currUidSet.has(prevChild.uid)) {
+      entries.push({kind: 'removed', node: prevChild});
+    }
+    pi += 1;
+  }
+}
+
+/**
  * Computes the set of added/removed/changed entries between two trees.
  *
- * Why: Walk curr for adds/changes (DOM order of the live page), then prev for
- * removals. Identity is uid — if backendNodeId churned, the old uid disappears
- * and a new uid appears (reported as - and +), which is the correct agent signal.
+ * Why: Walk curr for adds/changes (DOM order of the live page), interleaving
+ * removals at each parent's sibling list. Identity is uid — if backendNodeId
+ * churned, the old uid disappears and a new uid appears (reported as - and +).
  *
  * @param prevRoot - Previous snapshot root.
  * @param currRoot - Current snapshot root.
@@ -179,46 +272,35 @@ export function computeDiff(
   const currParentMap = buildParentMap(currRoot);
   const entries: DiffEntry[] = [];
 
-  // Curr BFS: additions and changes in current DOM order.
-  const currQueue: TextSnapshotNode[] = [currRoot];
-  while (currQueue.length > 0) {
-    const node = currQueue.shift();
-    if (node === undefined) {
-      break;
-    }
-    const prev = prevMap.get(node.uid);
-    const prevParentUid = prevParentMap.get(node.uid)?.uid;
-    const currParentUid = currParentMap.get(node.uid)?.uid;
-    const parentChanged = prevParentUid !== currParentUid;
-    if (prev === undefined) {
-      entries.push({kind: 'added', node});
-    } else if (!nodesEqual(prev, node) || parentChanged) {
-      entries.push({
-        kind: 'changed',
-        node,
-        previous: prev,
-        detail: changeDetail(prev, node, prevParentUid, currParentUid),
-      });
-    }
-    for (const child of node.children) {
-      currQueue.push(child);
-    }
+  const prevParentUid = prevParentMap.get(currRoot.uid)?.uid;
+  const currParentUid = currParentMap.get(currRoot.uid)?.uid;
+  const rootParentChanged = prevParentUid !== currParentUid;
+  const prevRootNode = prevMap.get(currRoot.uid);
+  if (prevRootNode === undefined) {
+    entries.push({kind: 'added', node: currRoot});
+  } else if (!nodesEqual(prevRootNode, currRoot) || rootParentChanged) {
+    entries.push({
+      kind: 'changed',
+      node: currRoot,
+      previous: prevRootNode,
+      detail: changeDetail(
+        prevRootNode,
+        currRoot,
+        prevParentUid,
+        currParentUid,
+      ),
+    });
   }
 
-  // Prev BFS: removals in previous DOM order.
-  const prevQueue: TextSnapshotNode[] = [prevRoot];
-  while (prevQueue.length > 0) {
-    const node = prevQueue.shift();
-    if (node === undefined) {
-      break;
-    }
-    if (!currMap.has(node.uid)) {
-      entries.push({kind: 'removed', node});
-    }
-    for (const child of node.children) {
-      prevQueue.push(child);
-    }
-  }
+  diffChildrenInDomOrder(
+    prevRootNode === undefined ? [] : prevRootNode.children,
+    currRoot.children,
+    prevMap,
+    currMap,
+    prevParentMap,
+    currParentMap,
+    entries,
+  );
 
   if (entries.length === 0) {
     return {
@@ -249,7 +331,7 @@ function formatNodeShort(n: TextSnapshotNode): string {
  * Why: Summary gives a quick scan; context re-anchors each change under its parent
  * so agents know where in the page the delta landed without a full re-snapshot.
  *
- * @param entries - Diff entries (adds/changes first in curr order, then removals).
+ * @param entries - Diff entries in DOM-interleaved order.
  * @param currRoot - Current tree (for parent lookup / context).
  * @param prevRoot - Previous tree (for removed-node parent context).
  * @returns Formatted multiline string.
