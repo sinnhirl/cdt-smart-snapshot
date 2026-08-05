@@ -17,6 +17,11 @@
  * identity. Missing backendNodeIds get a stable logical-path uid so nodes
  * without a DOM handle (pure AX nodes) still diff correctly instead of being
  * treated as brand-new on every snapshot.
+ *
+ * Memory: byBackendId and byLogicalPath grow monotonically for the process
+ * lifetime so uids stay stable for diff. Long sessions with heavy DOM churn
+ * can increase RSS; reset() clears mappings (tests only — would break diff
+ * if used in production). Page navigation does not auto-reset by design.
  */
 export class UidMapper {
   private readonly byBackendId = new Map<number, number>();
@@ -57,6 +62,10 @@ export class UidMapper {
    * spurious removed+added every round. Keying on (parentUid, role,
    * siblingIndex) is stable as long as the parent exists and the sibling order
    * is unchanged — exactly the nodes whose identity we can trust positionally.
+   *
+   * Limitation: inserting or removing an earlier sibling shifts siblingIndex
+   * for all following AX-only nodes, which produces spurious removed+added
+   * diff pairs (not reparent). Nodes with backendNodeId are unaffected.
    *
    * IMPORTANT: the key deliberately excludes the node's name/text. Text
    * content changes are the most common diff event on dynamic pages ("3

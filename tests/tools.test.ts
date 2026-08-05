@@ -7,6 +7,7 @@
  */
 
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -101,6 +102,7 @@ const {
     fetchAxTreeWithVisibility: vi.fn(async () => ({
       raw: mockState.raw,
       visibilityByBackendId: mockState.visibilityByBackendId,
+      visibilitySkipped: false,
     })),
     takeScreenshotToPath: vi.fn(
       async (
@@ -128,14 +130,16 @@ vi.mock('../src/browser.js', () => ({
   disconnectBrowser: vi.fn(),
   fetchAxTree: vi.fn(),
   collectVisibilityByBackendId: vi.fn(),
-  getLastConnectError: vi.fn(),
+  getLastConnectError: vi.fn(() => undefined),
 }));
 
 import {resetDiffHistory} from '../src/core/diff.js';
 import {defaultUidMapper} from '../src/core/uid.js';
+import {readPackageVersion} from '../src/version.js';
 import {handleScreenshotToDisk} from '../src/tools/screenshot_to_disk.js';
 import {handleSmartSnapshot} from '../src/tools/smart_snapshot.js';
 import {handleSnapshotDiff} from '../src/tools/snapshot_diff.js';
+import {getLastConnectError} from '../src/browser.js';
 
 describe('tools', () => {
   beforeEach(() => {
@@ -146,6 +150,7 @@ describe('tools', () => {
     getActivePage.mockClear();
     fetchAxTreeWithVisibility.mockClear();
     takeScreenshotToPath.mockClear();
+    vi.mocked(getLastConnectError).mockReturnValue(undefined);
   });
 
   it('smart_snapshotShouldUseEnvDefaultMaxDepthWhenOmitted', async () => {
@@ -248,9 +253,9 @@ describe('tools', () => {
 
   it('screenshot_to_diskShouldReturnFilePath', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'cdt-ss-'));
+    vi.stubEnv('CDT_SNAPSHOT_DIR', dir);
     try {
       const result = await handleScreenshotToDisk({
-        directory: dir,
         format: 'png',
       });
       expect(result.isError).toBeUndefined();
@@ -262,14 +267,16 @@ describe('tools', () => {
       expect(bytes.length).toBeGreaterThan(0);
     } finally {
       await rm(dir, {recursive: true, force: true});
+      vi.unstubAllEnvs();
     }
   });
 
   it('screenshot_to_diskShouldCreateDirectory', async () => {
     const parent = await mkdtemp(join(tmpdir(), 'cdt-ss-parent-'));
+    vi.stubEnv('CDT_SNAPSHOT_DIR', parent);
     const nested = join(parent, 'nested', 'shots');
     try {
-      // Ensure nested path does not exist yet.
+      // Ensure nested path does not exist yet (inside allowed root).
       const result = await handleScreenshotToDisk({
         directory: nested,
         format: 'png',
@@ -282,6 +289,108 @@ describe('tools', () => {
       expect(bytes.length).toBeGreaterThan(0);
     } finally {
       await rm(parent, {recursive: true, force: true});
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('shouldSerializeConcurrentSnapshotDiffCalls', async () => {
+    const order: string[] = [];
+    fetchAxTreeWithVisibility.mockImplementation(async () => {
+      order.push('fetch-start');
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30);
+      });
+      order.push('fetch-end');
+      return {
+        raw: mockState.raw,
+        visibilityByBackendId: mockState.visibilityByBackendId,
+        visibilitySkipped: false,
+      };
+    });
+
+    const first = handleSnapshotDiff({});
+    const second = handleSnapshotDiff({});
+    await Promise.all([first, second]);
+
+    expect(order).toEqual([
+      'fetch-start',
+      'fetch-end',
+      'fetch-start',
+      'fetch-end',
+    ]);
+    const secondText = (await second).content[0]?.text ?? '';
+    expect(secondText).not.toContain('initial snapshot');
+  });
+
+  it('shouldReturnPackageVersionFromReadPackageVersion', () => {
+    const pkg = readPackageVersion();
+    expect(pkg).toMatch(/^\d+\.\d+\.\d+/);
+    const raw = readFileSync(join(process.cwd(), 'package.json'), 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null && 'version' in parsed) {
+      const version = parsed.version;
+      if (typeof version === 'string') {
+        expect(pkg).toBe(version);
+      }
+    }
+  });
+
+  it('shouldPreferLastConnectErrorInSmartSnapshotFailure', async () => {
+    vi.mocked(getLastConnectError).mockReturnValue(
+      'Failed to connect to browser at http://127.0.0.1:9222: refused',
+    );
+    getActivePage.mockRejectedValueOnce(new Error('generic'));
+    const result = await handleSmartSnapshot({});
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('Failed to connect to browser');
+  });
+
+  it('shouldIncludeLandmarksWhenSnapshotDiffVerboseTrue', async () => {
+    mockState.raw = {
+      role: 'RootWebArea',
+      name: 'example.com',
+      backendDOMNodeId: 1,
+      children: [
+        {
+          role: 'navigation',
+          name: 'Main',
+          backendDOMNodeId: 20,
+          children: [
+            {
+              role: 'link',
+              name: 'Home',
+              backendDOMNodeId: 21,
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+    mockState.visibilityByBackendId = new Map([
+      [1, defaultVisibleInfo()],
+      [20, defaultVisibleInfo()],
+      [21, defaultVisibleInfo()],
+    ]);
+    const result = await handleSnapshotDiff({verbose: true});
+    const text = result.content[0]?.text ?? '';
+    expect(text).toContain('[navigation]');
+  });
+
+  it('shouldRejectScreenshotDirectoryOutsideAllowedRoot', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cdt-ss-allowed-'));
+    try {
+      vi.stubEnv('CDT_SNAPSHOT_DIR', dir);
+      const result = await handleScreenshotToDisk({
+        directory: join(tmpdir(), 'cdt-ss-outside'),
+        format: 'png',
+      });
+      expect(result.isError).toBe(true);
+      const text = result.content[0]?.text ?? '';
+      expect(text).toContain('must be under');
+    } finally {
+      vi.unstubAllEnvs();
+      await rm(dir, {recursive: true, force: true});
     }
   });
 });

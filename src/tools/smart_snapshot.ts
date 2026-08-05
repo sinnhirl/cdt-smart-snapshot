@@ -8,7 +8,11 @@
 
 import {z} from 'zod';
 
-import {fetchAxTreeWithVisibility, getActivePage} from '../browser.js';
+import {
+  fetchAxTreeWithVisibility,
+  getActivePage,
+  getLastConnectError,
+} from '../browser.js';
 import {loadConfig} from '../config.js';
 import {normalizeAxTree} from '../core/ax-tree.js';
 import {storeSnapshot} from '../core/diff.js';
@@ -22,6 +26,7 @@ import {
   toErrorMessage,
   type ToolDefinition,
 } from './helpers.js';
+import {runExclusiveSnapshotTool} from './snapshot-serial.js';
 
 /** Zod schema for smart_snapshot arguments. */
 export const smartSnapshotArgsSchema = z.object({
@@ -90,35 +95,41 @@ export const smartSnapshotDefinition: ToolDefinition = {
 export async function handleSmartSnapshot(
   args: Record<string, unknown> | undefined,
 ): Promise<ToolTextResult> {
-  try {
-    const parsed = smartSnapshotArgsSchema.parse(args ?? {});
-    const config = loadConfig();
-    const options: SnapshotOptions = {
-      maxDepth: parsed.maxDepth ?? config.defaultMaxDepth,
-      includeHidden: parsed.includeHidden,
-      verbose: parsed.verbose,
-    };
+  return runExclusiveSnapshotTool(async () => {
+    try {
+      const parsed = smartSnapshotArgsSchema.parse(args ?? {});
+      const config = loadConfig();
+      const options: SnapshotOptions = {
+        maxDepth: parsed.maxDepth ?? config.defaultMaxDepth,
+        includeHidden: parsed.includeHidden,
+        verbose: parsed.verbose,
+      };
 
-    const {page} = await getActivePage();
-    const {raw, visibilityByBackendId, visibilitySkipped} =
-      await fetchAxTreeWithVisibility(page);
-    const normalized = normalizeAxTree(raw, defaultUidMapper);
-    const visibilityByUid = remapVisibilityToUid(
-      normalized,
-      visibilityByBackendId,
-    );
-    const result = runSmartSnapshotPipeline(
-      normalized,
-      options,
-      visibilityByUid.size > 0 ? visibilityByUid : undefined,
-      visibilitySkipped,
-    );
+      const {page} = await getActivePage();
+      const {raw, visibilityByBackendId, visibilitySkipped} =
+        await fetchAxTreeWithVisibility(page);
+      const normalized = normalizeAxTree(raw, defaultUidMapper);
+      const visibilityByUid = remapVisibilityToUid(
+        normalized,
+        visibilityByBackendId,
+      );
+      const result = runSmartSnapshotPipeline(
+        normalized,
+        options,
+        visibilityByUid.size > 0 ? visibilityByUid : undefined,
+        visibilitySkipped,
+      );
 
-    // Keep diff baseline in sync when agents use smart_snapshot as the first look.
-    // Use the pre-dedupe/collapse tree so merged/folded uids stay identifiable.
-    storeSnapshot(result.diffRoot, result.formatted);
-    return textResult(result.formatted);
-  } catch (err) {
-    return errorResult(toErrorMessage(err));
-  }
+      // Keep diff baseline in sync when agents use smart_snapshot as the first look.
+      // Use the pre-dedupe/collapse tree so merged/folded uids stay identifiable.
+      storeSnapshot(result.diffRoot, result.formatted);
+      return textResult(result.formatted);
+    } catch (err) {
+      const last = getLastConnectError();
+      if (last !== undefined) {
+        return errorResult(last);
+      }
+      return errorResult(toErrorMessage(err));
+    }
+  });
 }

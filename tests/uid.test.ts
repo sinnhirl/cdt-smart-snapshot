@@ -71,4 +71,30 @@ describe('uid', () => {
     const fresh = mapper.getUidForLogicalPath(9, 'button', 'Compose', 0);
     expect(fresh).toBe(1);
   });
+
+  it('shouldReportSpuriousRemovedAddedWhenSiblingInsertedBeforeAxOnlyNode', () => {
+    const mapper = new UidMapper();
+    const parentUid = mapper.getUid(100);
+    const first = mapper.getUidForLogicalPath(parentUid, 'text', 'Line A', 0);
+    const second = mapper.getUidForLogicalPath(parentUid, 'text', 'Line B', 1);
+    expect(second).toBe(first + 1);
+    // Insertion before Line B shifts its sibling index → new uid (known limitation).
+    const afterInsert = mapper.getUidForLogicalPath(
+      parentUid,
+      'text',
+      'Line B',
+      2,
+    );
+    expect(afterInsert).not.toBe(second);
+  });
+
+  it('shouldGrowMapperMonotonicallyWithoutReset', () => {
+    const mapper = new UidMapper();
+    mapper.getUid(1);
+    mapper.getUidForLogicalPath(0, 'text', 'a', 0);
+    mapper.getUidForLogicalPath(0, 'text', 'b', 1);
+    mapper.getUid(2);
+    // Four distinct assignments → next uid is 5 (no eviction in production).
+    expect(mapper.getUid(99)).toBe(5);
+  });
 });

@@ -8,7 +8,7 @@
 
 import {randomBytes} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
-import {join} from 'node:path';
+import {join, resolve, sep} from 'node:path';
 
 import {z} from 'zod';
 
@@ -104,6 +104,32 @@ export function buildScreenshotFilename(
 }
 
 /**
+ * Resolves a screenshot output directory under the configured allowed root.
+ *
+ * Why: Agents supply directory overrides; rejecting paths outside CDT_SNAPSHOT_DIR
+ * (or the resolved default) blocks accidental or hostile writes elsewhere.
+ *
+ * @param requested - Tool argument directory override, if any.
+ * @param allowedRoot - Config screenshotDir (absolute).
+ * @returns Absolute directory path to write into.
+ * @throws Error when the resolved path escapes allowedRoot.
+ */
+export function resolveSafeScreenshotDirectory(
+  requested: string | undefined,
+  allowedRoot: string,
+): string {
+  const base = resolve(allowedRoot);
+  const target = resolve(requested ?? allowedRoot);
+  const prefix = base.endsWith(sep) ? base : `${base}${sep}`;
+  if (target !== base && !target.startsWith(prefix)) {
+    throw new Error(
+      `Screenshot directory must be under the configured snapshot dir (${base})`,
+    );
+  }
+  return target;
+}
+
+/**
  * Executes screenshot_to_disk against the active browser page.
  *
  * @param args - Raw tool arguments (validated via zod).
@@ -116,7 +142,10 @@ export async function handleScreenshotToDisk(
   try {
     const parsed = screenshotArgsSchema.parse(args ?? {});
     const config = loadConfig();
-    const directory = parsed.directory ?? config.screenshotDir;
+    const directory = resolveSafeScreenshotDirectory(
+      parsed.directory,
+      config.screenshotDir,
+    );
 
     await mkdir(directory, {recursive: true});
 

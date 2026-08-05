@@ -27,6 +27,7 @@ import {
 } from './tools/snapshot_diff.js';
 import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import type {ToolTextResult} from './types.js';
+import {readPackageVersion} from './version.js';
 
 const TOOLS = [
   smartSnapshotDefinition,
@@ -58,7 +59,7 @@ function toCallToolResult(result: ToolTextResult): CallToolResult {
  */
 export function createServer(): Server {
   const server = new Server(
-    {name: 'cdt-smart-snapshot', version: '0.1.0'},
+    {name: 'cdt-smart-snapshot', version: readPackageVersion()},
     {capabilities: {tools: {}}},
   );
 
