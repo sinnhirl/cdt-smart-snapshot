@@ -53,7 +53,6 @@ const COLLAPSE_ROLES: ReadonlySet<string> = new Set([
   'list',
   'listitem',
   'paragraph',
-  'statictext',
   'complementary',
   'contentinfo',
   'form',
@@ -81,7 +80,12 @@ export function isInteractiveRole(role: string, name: string): boolean {
   }
 
   // img with a name is meaningful; unnamed decorative images are noise.
-  if (role === 'img' && trimmed.length > 0) {
+  // Chrome's AX tree reports the role as 'image' (ARIA img maps here),
+  // not the historical 'img', so accept both.
+  if (
+    (role === 'img' || role === 'image') &&
+    trimmed.length > 0
+  ) {
     return true;
   }
 
@@ -169,11 +173,14 @@ export function filterByInteraction(
 
   // Self-labeling controls (link/button/...) carry their text in the name;
   // fold redundant text/StaticText children so label-heavy pages don't bloat.
-  const finalChildren = SELF_LABELING_CONTROLS.has(root.role)
-    ? filteredChildren.filter(
-        c => c.role !== 'text' && c.role !== 'StaticText',
-      )
-    : filteredChildren;
+  // Defensive: only fold when the control actually has a name — a nameless
+  // control may rely on its text child for its label, folding would swallow it.
+  const finalChildren =
+    SELF_LABELING_CONTROLS.has(root.role) && root.name.trim().length > 0
+      ? filteredChildren.filter(
+          c => c.role !== 'text' && c.role !== 'StaticText',
+        )
+      : filteredChildren;
 
   if (shouldCollapseRole(root.role, root.name)) {
     // Promote children: return a synthetic holder only when we need a single root.

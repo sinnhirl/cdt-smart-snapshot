@@ -158,4 +158,29 @@ describe('interaction', () => {
       expect(roles).toEqual(['link', 'text']);
     }
   });
+
+  it('shouldKeepImageRoleWithName', () => {
+    // R3B: Chrome's AX tree reports img elements as role 'image'
+    // (ARIA img maps here), not the historical 'img'.
+    expect(isInteractiveRole('image', 'DeepSeek logo')).toBe(true);
+    expect(isInteractiveRole('img', 'DeepSeek logo')).toBe(true);
+    const kept = filterByInteraction(node(1, 'image', 'DeepSeek logo'), false);
+    expect(kept).toBeDefined();
+    if (kept !== undefined) {
+      expect(kept.role).toBe('image');
+    }
+  });
+
+  it('shouldKeepTextChildWhenSelfLabelingControlHasNoName', () => {
+    // R3D: a nameless control may rely on its text child as the label;
+    // folding must not swallow it.
+    const tree = node(1, 'button', '', [node(2, 'text', 'Submit')]);
+    const result = filterByInteraction(tree, false);
+    expect(result).toBeDefined();
+    if (result !== undefined) {
+      const roles = collectRoles(result);
+      expect(roles).toContain('text');
+      expect(roles).toContain('button');
+    }
+  });
 });
