@@ -38,7 +38,7 @@ export type SelectorMatchCount = (selector: string) => number;
  * @param el - Element.
  * @returns Tag such as `button`.
  */
-function tagCss(el: SelectorElement): string {
+export function tagCss(el: SelectorElement): string {
   return el.tagName.toLowerCase();
 }
 
@@ -48,7 +48,7 @@ function tagCss(el: SelectorElement): string {
  * @param el - Element.
  * @returns Class selector fragment.
  */
-function classSuffix(el: SelectorElement): string {
+export function classSuffix(el: SelectorElement): string {
   if (el.classNames.length === 0) {
     return '';
   }
@@ -68,7 +68,7 @@ function classSuffix(el: SelectorElement): string {
  * @param countMatches - Uniqueness check.
  * @returns Unique selector or undefined.
  */
-function firstUnique(
+export function firstUnique(
   candidates: string[],
   countMatches: SelectorMatchCount,
 ): string | undefined {
@@ -86,7 +86,7 @@ function firstUnique(
  * @param el - Target element.
  * @returns Selector such as `html > body > div:nth-of-type(2)`.
  */
-function buildNthOfTypeChain(el: SelectorElement): string {
+export function buildNthOfTypeChain(el: SelectorElement): string {
   const segments: string[] = [];
   let current: SelectorElement | null = el;
   while (current !== null) {
@@ -103,7 +103,7 @@ function buildNthOfTypeChain(el: SelectorElement): string {
  * @param el - Target element.
  * @returns Candidate selector or empty string.
  */
-function buildClassChain(el: SelectorElement): string {
+export function buildClassChain(el: SelectorElement): string {
   const segments: string[] = [];
   let current: SelectorElement | null = el;
   while (current !== null) {

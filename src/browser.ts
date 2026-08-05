@@ -14,6 +14,14 @@ import puppeteer from 'puppeteer-core';
 import type {Browser, CDPSession, Page, SerializedAXNode} from 'puppeteer-core';
 
 import {loadConfig} from './config.js';
+import {
+  buildClassChain,
+  buildNthOfTypeChain,
+  buildSelectorFromNode,
+  classSuffix,
+  firstUnique,
+  tagCss,
+} from './core/selector.js';
 import type {ElementVisibilityInfo, RawAxNode} from './types.js';
 
 let browserInstance: Browser | undefined;
@@ -744,71 +752,54 @@ export function resetDiagnosticsAttachmentState(): void {
 
 /**
  * CDP function body: read tagName, form state, geometry, selector.
+ *
+ * The selector logic is injected from src/core/selector.ts (single source of
+ * truth, R4-3): browser.ts no longer keeps a second inline copy that can
+ * drift from the unit-tested pure functions.
  */
-const DOM_STATE_READER_FUNCTION = String.raw`function() {
+function buildDomStateReaderFunction(): string {
+  const selectorSource = [
+    tagCss,
+    classSuffix,
+    firstUnique,
+    buildNthOfTypeChain,
+    buildClassChain,
+    buildSelectorFromNode,
+  ]
+    .map(fn => fn.toString())
+    .join('\n');
+
+  return String.raw`function() {
   const el = this;
   if (!el || el.nodeType !== 1) return null;
+  ${selectorSource}
   const countMatches = (selector) => document.querySelectorAll(selector).length;
-  const firstUnique = (candidates) => {
-    for (const sel of candidates) {
-      if (sel.length > 0 && countMatches(sel) === 1) return sel;
-    }
-    return '';
-  };
-  const buildSelector = () => {
-    const testId = el.getAttribute('data-testid');
-    if (testId) {
-      const hit = firstUnique(['[data-testid="' + testId + '"]']);
-      if (hit) return hit;
-    }
-    if (el.id) {
-      const hit = firstUnique(['#' + el.id]);
-      if (hit) return hit;
-    }
-    const classSegments = [];
-    let current = el;
-    while (current) {
-      const tag = current.tagName.toLowerCase();
-      let cls = '';
-      for (const name of current.classList) {
-        if (name) cls += '.' + name;
+  const toSelectorElement = (node) => {
+    let nth = 1;
+    const parent = node.parentElement;
+    if (parent) {
+      for (const sibling of parent.children) {
+        if (sibling === node) break;
+        if (sibling.tagName === node.tagName) nth += 1;
       }
-      classSegments.unshift(tag + cls);
-      current = current.parentElement;
     }
-    const classChain = classSegments.join(' > ');
-    if (classChain) {
-      const hit = firstUnique([classChain]);
-      if (hit) return hit;
-    }
-    const tagHit = firstUnique([el.tagName.toLowerCase()]);
-    if (tagHit) return tagHit;
-    const nthSegments = [];
-    current = el;
-    while (current) {
-      const tag = current.tagName.toLowerCase();
-      let nth = 1;
-      const parent = current.parentElement;
-      if (parent) {
-        for (const sibling of parent.children) {
-          if (sibling.tagName === current.tagName) {
-            if (sibling === current) break;
-            nth += 1;
-          }
-        }
-      }
-      nthSegments.unshift(tag + ':nth-of-type(' + nth + ')');
-      current = current.parentElement;
-    }
-    return firstUnique([nthSegments.join(' > ')]);
+    return {
+      tagName: node.tagName,
+      id: node.id || '',
+      classNames: Array.from(node.classList || []),
+      nthOfType: nth,
+      parent: node.parentElement ? toSelectorElement(node.parentElement) : null,
+      getAttribute: (name) => node.getAttribute(name),
+    };
   };
+  const cssSelector = buildSelectorFromNode(toSelectorElement(el), countMatches) || '';
   const rect = el.getBoundingClientRect();
   let text = el.textContent || '';
   if (text.length > 200) text = text.slice(0, 200) + '…';
   const out = {
     tagName: el.tagName.toLowerCase(),
     visible: !!(el.offsetParent || (rect.width > 0 && rect.height > 0)),
-    cssSelector: buildSelector(),
+    cssSelector,
     textContent: text || undefined,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
   };
@@ -829,6 +820,9 @@ const DOM_STATE_READER_FUNCTION = String.raw`function() {
   }
   return out;
 }`;
+}
+
+const DOM_STATE_READER_FUNCTION = buildDomStateReaderFunction();
 
 /**
  * Resolves backendNodeId to objectId via CDP DOM.resolveNode, keeping the
