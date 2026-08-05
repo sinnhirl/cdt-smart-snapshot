@@ -849,7 +849,7 @@ async function resolveBackendNodeObjectId(
     });
     const objectId = readResolveObjectId(resolved);
     if (objectId === undefined) {
-      await client.detach().catch(() => {});
+      await client.detach().catch(() => undefined);
       return undefined;
     }
     return {client, objectId};
@@ -892,7 +892,7 @@ export async function queryDomByBackendNodeId(
   } catch {
     return undefined;
   } finally {
-    await client.detach().catch(() => {});
+    await client.detach().catch(() => undefined);
   }
 }
 
