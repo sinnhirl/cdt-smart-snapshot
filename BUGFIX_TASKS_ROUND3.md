@@ -88,9 +88,70 @@ Benchmark 实测（v0.1.4 vs README 记录的 v0.1.0 数据）：
 ## 验收
 - npm run test 全绿（72 现有 + 新增）
 - npm run typecheck 零错误
-- npm run check-format 零错误
+- npm run check-format 零错误（格式不对先 npm run format）
 - 每个修复一个 Conventional Commit（fix: ... 注明任务号 ROUND3-N）
 - 修完重跑 bench/multi-site-3x.mjs 至少 1 轮，确认 Wikipedia 缩减恢复
+
+## 追加：真实环境 bug（2026-08-05 16:00，MCP server 端到端实证 v0.1.6）
+以下问题经 Hermes 真实连 Edge（DeepSeek 用量页）复现，脚本输出在
+/tmp/cdt-live-*.mjs。上一版任务书被覆盖丢失，此节为恢复 + 新发现。
+
+### R3A【严重·已修复】RootWebArea 根节点永远被 visibility 误杀 → 页面标题行消失
+文件: src/browser.ts:341-357（walkAxForVisibility evaluate）、
+      src/core/visibility.ts:169-197（isSelfVisibilityDropped）
+- 实证（/tmp/cdt-live-diag.mjs / cdt-live-pipeline2.mjs，v0.1.6 复现）：
+  RootWebArea 的 elementHandle() 指向 HTMLDocument（nodeType 9），
+  evaluate 内 getComputedStyle(document) 抛 TypeError，被 catch 吞掉 →
+  根节点永远不进 visibility map（90 个其他节点正常，root has info:false）。
+  isSelfVisibilityDropped 在 visibilityEvaluated=true 时把 visible!==true
+  判 dropped → 根被包 __promoted__ → formatTree 透明化 → 输出永远没有
+  `[RootWebArea] 页面标题` 行（非 verbose 和 verbose 都缺）。
+- 修法: evaluate 内处理非 Element（el instanceof Document 时改用
+  el.documentElement 或直接标可见）；或 isSelfVisibilityDropped 对根节点
+  （无父/uid 最小）特判放行。选前者更通用。
+- TDD: browser.test.ts mock document 类型 handle；visibility.test.ts 根
+  节点缺 info 不被 dropped。
+- 验收: MCP smart_snapshot 输出首行为 `[RootWebArea] <标题>`。
+- **实际修复**: commit 383aea0。Document handle 直接返回可见全视口几何
+  （documentElement 在 CDP 里 rect 高度为 0，测量会误判 hidden）。
+  实测首行 `[RootWebArea] DeepSeek 开放平台` 恢复；回归测试
+  shouldKeepRootLineWhenRootVisibleAndVisibilityEvaluated。
+
+### R3B【中等·已修复】role 'image' 与 'img' 不匹配 → logo 图片丢失
+文件: src/core/interaction.ts:84
+- 实证（/tmp/cdt-live-img.mjs，v0.1.6 复现）：真实页面 image 节点 role
+  ='image' name='DeepSeek 开放平台'，isInteractiveRole('image', name)
+  ===false（只认 'img'）→ 非 verbose 快照不含任何 [image]/[img] 行。
+  Chrome AX 实际返回 'image'（ARIA img 映射）。
+- 修法: isInteractiveRole/shouldCollapseRole 角色表加 'image'。
+- TDD: interaction.test.ts 加 isInteractiveRole('image','logo')===true。
+- 验收: 非 verbose 快照含 `[image] "logo名"`。
+- **实际修复**: commit 590c9c0。isInteractiveRole 同时接受 'image'/'img'。
+  实测 `[image] "DeepSeek 开放平台" ×2 (uid=3)` 恢复。
+
+### R3C【轻微·已修复】COLLAPSE_ROLES 'statictext' 小写死条目
+文件: src/core/interaction.ts（COLLAPSE_ROLES 里的 'statictext'）
+- 实证（/tmp/cdt-live-img.mjs）：真实页面 66 个文本节点 role 全是
+  'StaticText'；shouldCollapseRole('StaticText')===false（死条目）。
+  行为恰好正确（走 isInteractiveRole StaticText 分支保留），但声明是
+  死代码，误导维护。
+- 修法: 删死条目或改驼峰并补行为测试锁定。
+
+### R3D【低·已修复】SELF_LABELING_CONTROLS 折叠可能吞无 name 控件的 text 标签
+文件: src/core/interaction.ts:172-176
+- 实证（/tmp/cdt-verify-selflabel.mjs）：mock 无 name checkbox/button +
+  text 子节点 → 输出 [checkbox] (uid=2) 无标签。但真实 Chrome 中 input
+  是 void 元素无 children、button 无 name 时 Chrome 已算好 name，发生
+  概率低。防御性修复：仅当控件 name 非空时才折叠 text 子节点。
+- TDD: interaction.test.ts 加「无 name 控件不折叠 text 子节点」。
+- 优先级: 低于 R3A/R3B，可与 R3C 一起做。
+- **实际修复**: commit 590c9c0。仅当控件 name 非空才折叠 text 子节点；
+  回归测试 shouldKeepTextChildWhenSelfLabelingControlHasNoName。
+
+## 备注（恢复）
+- R3A 已修：agent 现在能看到页面标题行确认所在页面。
+- Hermes MCP server 进程跑旧 build 的坑：改代码后要 npm run build +
+  重新加载 MCP server（Hermes 端 reload），否则实测仍旧行为。
 
 ## 备注
 - 不要动 CHANGELOG/release 配置（Hermes 另行处理）
