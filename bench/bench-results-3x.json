@@ -1,0 +1,340 @@
+{
+  "runAt": "2026-08-05T04:24:21.289Z",
+  "rounds": 3,
+  "roundResults": [
+    {
+      "Gmail (logged-in)": {
+        "site": "Gmail (logged-in)",
+        "url": "https://mail.google.com/",
+        "officialChars": 74082,
+        "officialNodes": 786,
+        "officialTokens": 18521,
+        "smartChars": 25017,
+        "smartNodes": 275,
+        "smartTokens": 6254,
+        "reduction": 66.23066331902486
+      },
+      "Wikipedia (long doc)": {
+        "site": "Wikipedia (long doc)",
+        "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+        "officialChars": 578252,
+        "officialNodes": 16225,
+        "officialTokens": 144563,
+        "smartChars": 561090,
+        "smartNodes": 12361,
+        "smartTokens": 140273,
+        "reduction": 2.9679101844870437
+      },
+      "BBC News (portal)": {
+        "site": "BBC News (portal)",
+        "url": "https://www.bbc.com/news",
+        "officialChars": 26936,
+        "officialNodes": 375,
+        "officialTokens": 6734,
+        "smartChars": 4194,
+        "smartNodes": 55,
+        "smartTokens": 1049,
+        "reduction": 84.42975942975943
+      },
+      "Amazon (e-commerce)": {
+        "site": "Amazon (e-commerce)",
+        "url": "https://www.amazon.com/",
+        "officialChars": 37238,
+        "officialNodes": 859,
+        "officialTokens": 9310,
+        "smartChars": 2187,
+        "smartNodes": 65,
+        "smartTokens": 547,
+        "reduction": 94.12696707664215
+      },
+      "Bilibili (video)": {
+        "site": "Bilibili (video)",
+        "url": "https://www.bilibili.com/",
+        "officialChars": 5786,
+        "officialNodes": 241,
+        "officialTokens": 1447,
+        "smartChars": 4787,
+        "smartNodes": 143,
+        "smartTokens": 1197,
+        "reduction": 17.26581403387487
+      },
+      "JD.com (CN e-commerce)": {
+        "site": "JD.com (CN e-commerce)",
+        "url": "https://www.jd.com/",
+        "officialChars": 10473,
+        "officialNodes": 482,
+        "officialTokens": 2618,
+        "smartChars": 2905,
+        "smartNodes": 110,
+        "smartTokens": 726,
+        "reduction": 72.26200706578823
+      },
+      "GitHub (dev platform)": {
+        "site": "GitHub (dev platform)",
+        "url": "https://github.com/",
+        "officialChars": 4395,
+        "officialNodes": 134,
+        "officialTokens": 1099,
+        "smartChars": 3955,
+        "smartNodes": 89,
+        "smartTokens": 989,
+        "reduction": 10.011376564277585
+      },
+      "163.com (CN portal)": {
+        "site": "163.com (CN portal)",
+        "url": "https://www.163.com/",
+        "officialChars": 38138,
+        "officialNodes": 1485,
+        "officialTokens": 9535,
+        "smartChars": 7837,
+        "smartNodes": 259,
+        "smartTokens": 1959,
+        "reduction": 79.45094131837013
+      },
+      "Google (search)": {
+        "site": "Google (search)",
+        "url": "https://www.google.com/",
+        "officialChars": 913,
+        "officialNodes": 37,
+        "officialTokens": 228,
+        "smartChars": 898,
+        "smartNodes": 27,
+        "smartTokens": 225,
+        "reduction": 1.642935377875132
+      },
+      "YouTube (video)": {
+        "site": "YouTube (video)",
+        "url": "https://www.youtube.com/",
+        "officialChars": 2667,
+        "officialNodes": 105,
+        "officialTokens": 667,
+        "smartChars": 1509,
+        "smartNodes": 42,
+        "smartTokens": 377,
+        "reduction": 43.41957255343082
+      },
+      "Reddit (social)": {
+        "site": "Reddit (social)",
+        "url": "https://www.reddit.com/",
+        "officialChars": 35055,
+        "officialNodes": 795,
+        "officialTokens": 8764,
+        "smartChars": 4683,
+        "smartNodes": 107,
+        "smartTokens": 1171,
+        "reduction": 86.64099272571673
+      },
+      "Baidu (CN search)": {
+        "site": "Baidu (CN search)",
+        "url": "https://www.baidu.com/",
+        "officialChars": 1972,
+        "officialNodes": 89,
+        "officialTokens": 493,
+        "smartChars": 2175,
+        "smartNodes": 68,
+        "smartTokens": 544,
+        "reduction": -10.294117647058831
+      },
+      "Zhihu (CN Q&A)": {
+        "site": "Zhihu (CN Q&A)",
+        "url": "https://www.zhihu.com/",
+        "officialChars": 2682,
+        "officialNodes": 104,
+        "officialTokens": 671,
+        "smartChars": 3035,
+        "smartNodes": 88,
+        "smartTokens": 759,
+        "reduction": -13.16181953765847
+      },
+      "CNN (news)": {
+        "site": "CNN (news)",
+        "url": "https://www.cnn.com/",
+        "officialChars": 40976,
+        "officialNodes": 727,
+        "officialTokens": 10244,
+        "smartChars": 4450,
+        "smartNodes": 82,
+        "smartTokens": 1113,
+        "reduction": 89.13998438110113
+      },
+      "Stack Overflow (Q&A)": {
+        "site": "Stack Overflow (Q&A)",
+        "url": "https://stackoverflow.com/",
+        "officialChars": 23069,
+        "officialNodes": 531,
+        "officialTokens": 5767,
+        "smartChars": 8764,
+        "smartNodes": 169,
+        "smartTokens": 2191,
+        "reduction": 62.00962330400104
+      }
+    },
+    {
+      "Gmail (logged-in)": {
+        "site": "Gmail (logged-in)",
+        "url": "https://mail.google.com/",
+        "officialChars": 73913,
+        "officialNodes": 778,
+        "officialTokens": 18478,
+        "smartChars": 24865,
+        "smartNodes": 259,
+        "smartTokens": 6216,
+        "reduction": 66.35909785829286
+      },
+      "Wikipedia (long doc)": {
+        "site": "Wikipedia (long doc)",
+        "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+        "officialChars": 578252,
+        "officialNodes": 16225,
+        "officialTokens": 144563,
+        "smartChars": 562627,
+        "smartNodes": 12361,
+        "smartTokens": 140657,
+        "reduction": 2.7021091150571053
+      },
+      "BBC News (portal)": {
+        "site": "BBC News (portal)",
+        "url": "https://www.bbc.com/news",
+        "officialChars": 26984,
+        "officialNodes": 375,
+        "officialTokens": 6746,
+        "smartChars": 5170,
+        "smartNodes": 64,
+        "smartTokens": 1293,
+        "reduction": 80.8404980729321
+      },
+      "Amazon (e-commerce)": {
+        "site": "Amazon (e-commerce)",
+        "url": "https://www.amazon.com/",
+        "officialChars": 38085,
+        "officialNodes": 845,
+        "officialTokens": 9521,
+        "smartChars": 2239,
+        "smartNodes": 66,
+        "smartTokens": 560,
+        "reduction": 94.12104503085204
+      },
+      "Bilibili (video)": {
+        "site": "Bilibili (video)",
+        "url": "https://www.bilibili.com/",
+        "officialChars": 5796,
+        "officialNodes": 238,
+        "officialTokens": 1449,
+        "smartChars": 4699,
+        "smartNodes": 139,
+        "smartTokens": 1175,
+        "reduction": 18.926846100759143
+      },
+      "JD.com (CN e-commerce)": {
+        "site": "JD.com (CN e-commerce)",
+        "url": "https://www.jd.com/",
+        "officialChars": 10473,
+        "officialNodes": 482,
+        "officialTokens": 2618,
+        "smartChars": 2919,
+        "smartNodes": 110,
+        "smartTokens": 730,
+        "reduction": 72.12832999140647
+      },
+      "GitHub (dev platform)": {
+        "site": "GitHub (dev platform)",
+        "url": "https://github.com/",
+        "officialChars": 4395,
+        "officialNodes": 134,
+        "officialTokens": 1099,
+        "smartChars": 3946,
+        "smartNodes": 89,
+        "smartTokens": 987,
+        "reduction": 10.216154721274172
+      },
+      "163.com (CN portal)": {
+        "site": "163.com (CN portal)",
+        "url": "https://www.163.com/",
+        "officialChars": 35419,
+        "officialNodes": 1319,
+        "officialTokens": 8855,
+        "smartChars": 6670,
+        "smartNodes": 216,
+        "smartTokens": 1668,
+        "reduction": 81.16829950026822
+      },
+      "Google (search)": {
+        "site": "Google (search)",
+        "url": "https://www.google.com/",
+        "officialChars": 913,
+        "officialNodes": 37,
+        "officialTokens": 228,
+        "smartChars": 897,
+        "smartNodes": 27,
+        "smartTokens": 224,
+        "reduction": 1.7524644030668113
+      },
+      "YouTube (video)": {
+        "site": "YouTube (video)",
+        "url": "https://www.youtube.com/",
+        "officialChars": 2667,
+        "officialNodes": 105,
+        "officialTokens": 667,
+        "smartChars": 1504,
+        "smartNodes": 42,
+        "smartTokens": 376,
+        "reduction": 43.60704911886014
+      },
+      "Reddit (social)": {
+        "site": "Reddit (social)",
+        "url": "https://www.reddit.com/",
+        "officialChars": 34086,
+        "officialNodes": 793,
+        "officialTokens": 8522,
+        "smartChars": 6575,
+        "smartNodes": 114,
+        "smartTokens": 1644,
+        "reduction": 80.71055565334741
+      },
+      "Baidu (CN search)": {
+        "site": "Baidu (CN search)",
+        "url": "https://www.baidu.com/",
+        "officialChars": 1977,
+        "officialNodes": 90,
+        "officialTokens": 494,
+        "smartChars": 2190,
+        "smartNodes": 69,
+        "smartTokens": 548,
+        "reduction": -10.773899848254942
+      },
+      "Zhihu (CN Q&A)": {
+        "site": "Zhihu (CN Q&A)",
+        "url": "https://www.zhihu.com/",
+        "officialChars": 2682,
+        "officialNodes": 104,
+        "officialTokens": 671,
+        "smartChars": 3035,
+        "smartNodes": 88,
+        "smartTokens": 759,
+        "reduction": -13.16181953765847
+      },
+      "CNN (news)": {
+        "site": "CNN (news)",
+        "url": "https://www.cnn.com/",
+        "officialChars": 41331,
+        "officialNodes": 733,
+        "officialTokens": 10333,
+        "smartChars": 4793,
+        "smartNodes": 88,
+        "smartTokens": 1198,
+        "reduction": 88.40337761002637
+      },
+      "Stack Overflow (Q&A)": {
+        "site": "Stack Overflow (Q&A)",
+        "url": "https://stackoverflow.com/",
+        "officialChars": 23476,
+        "officialNodes": 533,
+        "officialTokens": 5869,
+        "smartChars": 9074,
+        "smartNodes": 176,
+        "smartTokens": 2269,
+        "reduction": 61.34775941386948
+      }
+    }
+  ]
+}
