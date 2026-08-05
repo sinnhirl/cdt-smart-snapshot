@@ -1,6 +1,6 @@
 {
   "name": "cdt-smart-snapshot",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Token-efficient snapshot MCP server for Chrome DevTools protocol: smart_snapshot, snapshot_diff, screenshot_to_disk",
   "type": "module",
   "license": "Apache-2.0",

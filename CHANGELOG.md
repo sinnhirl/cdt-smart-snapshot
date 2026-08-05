@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.6...v0.1.7) (2026-08-05)
+
+
+### Bug Fixes
+
+* keep RootWebArea root line in snapshots (R3A) ([383aea0](https://github.com/sinnhirl/cdt-smart-snapshot/commit/383aea08d12bf3efb117b7dd03589793ca3a0cf8))
+* recognize image role + defensive fold + drop dead statictext entry (R3B R3C R3D) ([590c9c0](https://github.com/sinnhirl/cdt-smart-snapshot/commit/590c9c007775da51b064bfa806a00a6c6ca76a3f))
+
 ## [0.1.6](https://github.com/sinnhirl/cdt-smart-snapshot/compare/v0.1.5...v0.1.6) (2026-08-05)
 
 
